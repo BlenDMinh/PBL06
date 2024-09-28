@@ -9,52 +9,71 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  id       Int   @id @default(autoincrement())
-  name     String   @unique
-  permissions Int
+enum Result {
+  PENDING
+  SUCCESS
+  REJECTED
+  ERROR
+}
 
-  users User[]
+model Account {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  user     User   @relation(fields: [user_id], references: [id])
+  user_id  Int    @unique @map("user_id")
 }
 
 model User {
-  id       Int   @id @default(autoincrement())
-  email    String   @unique
-  name     String?
-  role     Role     @relation(fields: [roleId], references: [id])
-  roleId   Int  @map("role_id")
-
-  devices Device[]
-
-  loginDatas LoginData[]
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  username     String?
+  avatar       Image?        @relation(fields: [avatar_id], references: [id])
+  avatar_id    Int?          @map("avatar_id")
+  queries      Query[]
+  accounts     Account?
+  subsctiption Subsctiption?
 }
 
-model LoginData {
-  id       Int   @id @default(autoincrement())
-  user     User     @relation(fields: [userId], references: [id])
-  userId   Int  @map("user_id")
-  hashedPassword String
+model Image {
+  id         Int      @id @default(autoincrement())
+  image_url  String
+  created_at DateTime @default(now())
+  users      User[]
+  queries    Query[]
 }
 
-model Device {
-  id       Int   @id @default(autoincrement())
-  name     String
-  owner    User     @relation(fields: [ownerId], references: [id])
-  ownerId  Int  @map("owner_id")
-  isOn     Boolean @default(false)
-
-  pingDatas PingData[]
+model Query {
+  id         Int      @id @default(autoincrement())
+  query      String
+  user       User     @relation(fields: [user_id], references: [id])
+  user_id    Int      @map("user_id")
+  image      Image    @relation(fields: [image_id], references: [id])
+  image_id   Int      @map("image_id")
+  result     Result   @default(PENDING)
+  content    String?
+  used_token Int
+  created_at DateTime @default(now())
 }
 
-model PingData {
-  id       Int   @id @default(autoincrement())
-  device   Device   @relation(fields: [deviceId], references: [id])
-  deviceId Int  @map("device_id")
-  time     DateTime
-  locationLat Float
-  locationLong Float
+model Subsctiption {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [user_id], references: [id])
+  user_id    Int      @unique @map("user_id")
+  plan       Plan     @relation(fields: [plan_id], references: [id])
+  plan_id    Int      @map("plan_id")
+  created_at DateTime @default(now())
+}
+
+model Plan {
+  id            Int            @id @default(autoincrement())
+  name          String
+  monthy_token  Int
+  daily_token   Int
+  price         Float
+  subscriptions Subsctiption[]
 }
