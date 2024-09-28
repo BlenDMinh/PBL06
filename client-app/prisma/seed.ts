@@ -1,51 +1,86 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const roles = await prisma.role.createManyAndReturn({
-    data: [
-      {
-        name: "admin",
-        permissions: 0,
-      },
-      {
-        name: "user",
-        permissions: 0,
-      },
-    ],
+  // Create some plans
+  const basicPlan = await prisma.plan.create({
+    data: {
+      name: 'Basic',
+      monthy_token: 100,
+      daily_token: 10,
+      price: 9.99,
+    },
   });
-  console.log("Seeding roles:", roles);
 
+  const premiumPlan = await prisma.plan.create({
+    data: {
+      name: 'Premium',
+      monthy_token: 1000,
+      daily_token: 100,
+      price: 49.99,
+    },
+  });
+
+  // Create a user
   const user = await prisma.user.create({
     data: {
-      email: "themysmine@gmail.com",
-      name: "BlenDMinh",
-      roleId: roles[0].id,
+      email: 'user@example.com',
+      username: 'exampleUser',
     },
   });
-  console.log("Seeding user:", user);
 
-  const salt = bcrypt.genSaltSync(10);
-  const hashedPassword = bcrypt.hashSync("ComTMM0112", salt);
-
-  const loginData = await prisma.loginData.create({
+  // Create a subscription for the user
+  await prisma.subsctiption.create({
     data: {
-      userId: user.id,
-      hashedPassword: hashedPassword,
+      user: {
+        connect: { id: user.id },
+      },
+      plan: {
+        connect: { id: basicPlan.id },
+      },
     },
   });
 
-  console.log("Seeding loginData:", loginData);
+  // Create an account for the user
+  await prisma.account.create({
+    data: {
+      email: 'user_account@example.com',
+      password: 'securepassword',
+      user: {
+        connect: { id: user.id },
+      },
+    },
+  });
+
+  // Create an image
+  const image = await prisma.image.create({
+    data: {
+      image_url: 'https://example.com/image.png',
+    },
+  });
+
+  // Create a query for the user
+  await prisma.query.create({
+    data: {
+      query: 'Example query',
+      user: {
+        connect: { id: user.id },
+      },
+      image: {
+        connect: { id: image.id },
+      },
+      result: 'PENDING',
+      used_token: 5,
+    },
+  });
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
+  .catch((e) => {
     console.error(e);
-    await prisma.$disconnect();
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });
