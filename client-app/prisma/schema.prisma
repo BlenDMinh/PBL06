@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id       Int   @id @default(autoincrement())
+  name     String   @unique
+  permissions Int
+
+  users User[]
+}
+
+model User {
+  id       Int   @id @default(autoincrement())
+  email    String   @unique
+  name     String?
+  role     Role     @relation(fields: [roleId], references: [id])
+  roleId   Int  @map("role_id")
+
+  devices Device[]
+
+  loginDatas LoginData[]
+}
+
+model LoginData {
+  id       Int   @id @default(autoincrement())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   Int  @map("user_id")
+  hashedPassword String
+}
+
+model Device {
+  id       Int   @id @default(autoincrement())
+  name     String
+  owner    User     @relation(fields: [ownerId], references: [id])
+  ownerId  Int  @map("owner_id")
+  isOn     Boolean @default(false)
+
+  pingDatas PingData[]
+}
+
+model PingData {
+  id       Int   @id @default(autoincrement())
+  device   Device   @relation(fields: [deviceId], references: [id])
+  deviceId Int  @map("device_id")
+  time     DateTime
+  locationLat Float
+  locationLong Float
+}
