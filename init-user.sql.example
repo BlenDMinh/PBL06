@@ -1,0 +1,5 @@
+-- init-user.sql
+
+-- Grant ALL privileges to the user on all databases
+GRANT ALL PRIVILEGES ON *.* TO '<username>'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
