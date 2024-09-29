@@ -1,0 +1,59 @@
+version: "1.0"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+
+services:
+  database:
+    container_name: mysql-database
+    image: mariadb:11.2.5-jammy
+    restart: always
+    env_file:
+      - .env.docker.local
+    environment:
+      - MARIADB_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_DB_PORT}:3306"
+    volumes:
+      - mysql-data:/var/lib/mariadb/data
+      - ./init-user.sql:/docker-entrypoint-initdb.d/init-user.sql
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mariadb",
+          "-h",
+          "localhost",
+          "-u",
+          "${MYSQL_USER}",
+          "-p${MYSQL_PASSWORD}",
+          "-e",
+          "SELECT 1;",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nextjs:
+    container_name: nextjs-app
+    build: client-app/.
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker.local
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - app-network

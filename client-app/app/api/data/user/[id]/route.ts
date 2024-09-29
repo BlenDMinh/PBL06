@@ -6,20 +6,27 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const prisma = new PrismaClient();
-  const user = await prisma.user.findFirst({
-    where: {
-      id: parseInt(params.id),
-    },
-    include: {
-      role: true,
-    },
-  });
-  prisma.$disconnect();
-
-  return NextResponse.json({
-    message: "Success",
-    data: {
-      user: user,
-    },
-  });
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: parseInt(params.id),
+      },
+      include: {
+        avatar: true,
+      },
+    });
+    return NextResponse.json({
+      message: "Success",
+      data: {
+        user: user,
+      },
+    });
+  } catch (error) {
+    return NextResponse.json({
+      message: "Error",
+      error: error,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
 }

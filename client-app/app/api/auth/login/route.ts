@@ -13,9 +13,6 @@ export async function POST(req: NextRequest) {
       where: {
         id: parseInt(user_id),
       },
-      include: {
-        role: true,
-      },
     });
     prisma.$disconnect();
     return NextResponse.json({
@@ -34,24 +31,20 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const loginData = await prisma.loginData.findFirst({
+    const account = await prisma.account.findFirst({
       where: {
         user: {
           email: email,
         },
       },
       include: {
-        user: {
-          include: {
-            role: true,
-          },
-        },
+        user: true,
       },
     });
-    if (loginData && bcrypt.compareSync(password, loginData.hashedPassword)) {
+    if (account && bcrypt.compareSync(password, account.password)) {
       const refresh_token = jwt.sign(
         {
-          sub: loginData.user.id,
+          sub: account.user.id,
           iat: Date.now() / 1000,
           iss: "https://example.com",
         },
@@ -62,7 +55,7 @@ export async function POST(req: NextRequest) {
       );
       const access_token = jwt.sign(
         {
-          sub: loginData.user.id,
+          sub: account.user.id,
           iat: Date.now() / 1000,
           iss: "https://example.com",
         },
@@ -72,7 +65,7 @@ export async function POST(req: NextRequest) {
       const response = NextResponse.json({
         message: "Logged in",
         data: {
-          user: loginData.user,
+          user: account.user,
           access_token: access_token,
           refresh_token: refresh_token,
         },
@@ -89,6 +82,6 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   } finally {
-    prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
