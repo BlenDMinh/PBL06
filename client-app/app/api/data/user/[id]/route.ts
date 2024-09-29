@@ -11,7 +11,7 @@ export async function GET(
       id: parseInt(params.id),
     },
     include: {
-      role: true,
+      avatar: true,
     },
   });
   prisma.$disconnect();
