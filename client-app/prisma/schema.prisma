@@ -36,7 +36,7 @@ model User {
   avatar_id    Int?          @map("avatar_id")
   queries      Query[]
   accounts     Account?
-  subsctiption Subsctiption?
+  subsctiption Subscription?
 }
 
 model Image {
@@ -60,7 +60,7 @@ model Query {
   created_at DateTime @default(now())
 }
 
-model Subsctiption {
+model Subscription {
   id         Int      @id @default(autoincrement())
   user       User     @relation(fields: [user_id], references: [id])
   user_id    Int      @unique @map("user_id")
@@ -75,5 +75,5 @@ model Plan {
   monthy_token  Int
   daily_token   Int
   price         Float
-  subscriptions Subsctiption[]
+  subscriptions Subscription[]
 }

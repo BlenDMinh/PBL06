@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -6,7 +6,7 @@ async function main() {
   // Create some plans
   const basicPlan = await prisma.plan.create({
     data: {
-      name: 'Basic',
+      name: "Basic",
       monthy_token: 100,
       daily_token: 10,
       price: 9.99,
@@ -15,7 +15,7 @@ async function main() {
 
   const premiumPlan = await prisma.plan.create({
     data: {
-      name: 'Premium',
+      name: "Premium",
       monthy_token: 1000,
       daily_token: 100,
       price: 49.99,
@@ -25,13 +25,13 @@ async function main() {
   // Create a user
   const user = await prisma.user.create({
     data: {
-      email: 'user@example.com',
-      username: 'exampleUser',
+      email: "user@example.com",
+      username: "exampleUser",
     },
   });
 
   // Create a subscription for the user
-  await prisma.subsctiption.create({
+  await prisma.subscription.create({
     data: {
       user: {
         connect: { id: user.id },
@@ -45,8 +45,8 @@ async function main() {
   // Create an account for the user
   await prisma.account.create({
     data: {
-      email: 'user_account@example.com',
-      password: 'securepassword',
+      email: "user_account@example.com",
+      password: "securepassword",
       user: {
         connect: { id: user.id },
       },
@@ -56,21 +56,21 @@ async function main() {
   // Create an image
   const image = await prisma.image.create({
     data: {
-      image_url: 'https://example.com/image.png',
+      image_url: "https://example.com/image.png",
     },
   });
 
   // Create a query for the user
   await prisma.query.create({
     data: {
-      query: 'Example query',
+      query: "Example query",
       user: {
         connect: { id: user.id },
       },
       image: {
         connect: { id: image.id },
       },
-      result: 'PENDING',
+      result: "PENDING",
       used_token: 5,
     },
   });
