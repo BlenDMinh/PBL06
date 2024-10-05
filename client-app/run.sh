@@ -10,4 +10,10 @@ else
     echo "-- Not first container startup --"
 fi
 
-pnpm start
+if [ $NODE_ENV = "Development" ]; then
+    echo "-- Running in development mode --"
+    pnpm run dev
+else
+    echo "-- Running in production mode --"
+    pnpm start
+fi

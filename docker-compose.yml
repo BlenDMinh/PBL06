@@ -1,9 +1,3 @@
-version: "1.0"
-
-networks:
-  app-network:
-    driver: bridge
-
 volumes:
   mysql-data:
 
@@ -24,8 +18,6 @@ services:
     volumes:
       - mysql-data:/var/lib/mariadb/data
       - ./init-user.sql:/docker-entrypoint-initdb.d/init-user.sql
-    networks:
-      - app-network
     healthcheck:
       test:
         [
@@ -50,10 +42,15 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    environment:
+      - APK_TIMEOUT=60
     env_file:
       - .env.docker.local
+    volumes:
+      - ./client-app:/app
     depends_on:
       database:
         condition: service_healthy
-    networks:
-      - app-network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
