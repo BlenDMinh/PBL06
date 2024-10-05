@@ -10,7 +10,7 @@ else
     echo "-- Not first container startup --"
 fi
 
-if [ $NODE_ENV = "Development" ]; then
+if [ $APP_ENV = "Development" ]; then
     echo "-- Running in development mode --"
     pnpm run dev
 else

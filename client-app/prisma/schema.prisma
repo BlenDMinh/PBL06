@@ -36,7 +36,7 @@ model User {
   avatar_id    Int?          @map("avatar_id")
   queries      Query[]
   accounts     Account?
-  subsctiption Subscription?
+  subscription Subscription?
 }
 
 model Image {
