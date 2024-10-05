@@ -90,7 +90,7 @@ pnpm install -g ts-node
 
 Once it is done, you are ready to go
 
-First create a file named **_.env_** with the content below:
+First create a file named `.env` with the content below:
 
 ```bash
 LOCAL_API_URL=<your_local_api_url> # http://localhost:3000
@@ -117,17 +117,20 @@ npx prisma migrate dev
 
 Just in case if seeding **failed** during migration phase, you can run the command below to manually seed data:
 
+
 ```bash
 npx prisma db seed
 ```
 
 #### Run the server with:
 
+
 ```bash
 pnpm run start
 ```
 
 ...or in development
+
 
 ```bash
 pnpm run dev
