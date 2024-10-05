@@ -34,18 +34,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  nextjs:
-    container_name: nextjs-app
-    build: client-app/.
-    restart: always
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env.docker.local
-    # volumes:
-    #   - ./client-app/app:/app/app
-    entrypoint: /app/run.sh
-    depends_on:
-      database:
-        condition: service_healthy

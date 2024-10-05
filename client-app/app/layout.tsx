@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="flex w-full">
-          {/* <Sidebar /> */}
+          <Sidebar />
           <div className="grow">{children}</div>
         </div>
       </body>
