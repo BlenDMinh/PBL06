@@ -6,7 +6,6 @@ import { Home01Icon, LaptopIcon } from "hugeicons-react";
 import { handleLogout } from "@/app/actions";
 import { useEffect, useState } from "react";
 import { User } from "@/lib/schema/data/user.schema";
-import { axiosInitialize } from "@/lib/util/api";
 
 export default function Sidebar() {
   const authenticationStore = useAuthenticateStore((state) => state);
@@ -16,14 +15,13 @@ export default function Sidebar() {
   const [user, setUser] = useState<User | null | undefined>();
   useEffect(() => {
     const init = async () => {
-      await axiosInitialize();
       await authenticationStore.ensuredInitialized().then(() => {
         setIsAuthenticated(authenticationStore.isAuthenticated);
         setUser(authenticationStore.user);
       });
     };
     init();
-  }, []);
+  }, [authenticationStore]);
   return (
     <div className="sticky w-60 bg-base-300 flex flex-col items-center justify-between py-8">
       <Link href="/" className="font-bold text-secondary-content text-2xl">
@@ -53,7 +51,7 @@ export default function Sidebar() {
             <div className="flex flex-col h-full items-start gap-1 text-white">
               <span className="text-base-content">
                 Logged in as{" "}
-                <span className="font-bold text-primary">{user?.name}</span>
+                <span className="font-bold text-primary">{user?.username}</span>
               </span>
               <button
                 className="hover:text-accent text-secondary transition-all"

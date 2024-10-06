@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { User, UserSchema } from "../schema/data/user.schema";
-import { api } from "../util/api";
 import { tokenLogin } from "./authenticate.action";
 
 interface AuthenticateStore {
@@ -37,6 +36,11 @@ const useAuthenticateStore = create<AuthenticateStore>((set, get) => ({
     }
     try {
       const user = await tokenLogin(access_token);
+      if (!user) {
+        set({ isAuthenticated: false });
+        set({ _initialized: true });
+        return;
+      }
       set({ user: user });
       set({ isAuthenticated: true });
     } catch (error) {

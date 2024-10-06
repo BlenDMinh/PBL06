@@ -33,12 +33,14 @@ export async function POST(req: NextRequest) {
     }
     const account = await prisma.account.findFirst({
       where: {
-        user: {
-          email: email,
-        },
+        email: email,
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            avatar: true,
+          },
+        },
       },
     });
     if (account && bcrypt.compareSync(password, account.password)) {
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
       return response;
     }
     return NextResponse.json(
-      { message: "Invalid email or password" },
+      { message: "Invalid email or password", error: "Unauthorized" },
       { status: 401 }
     );
   } catch (error: any) {
