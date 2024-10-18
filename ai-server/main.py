@@ -1,10 +1,14 @@
 from fastapi import FastAPI
-import routers
-import routers.img2txt
+import api
+import api.img2txt
 
 app = FastAPI()
 
-app.include_router(routers.img2txt.router, prefix='/api')
+app.include_router(api.img2txt.router, prefix='/api')
+
+origins = [
+  'http://localhost'
+]
 
 @app.get("/")
 def index():
