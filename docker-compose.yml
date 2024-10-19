@@ -49,3 +49,15 @@ services:
     depends_on:
       database:
         condition: service_healthy
+
+  fastapi:
+    container_name: fastapi-ai-server
+    build: ai-server/.
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.docker.local
+    depends_on:
+      database:
+        condition: service_healthy
