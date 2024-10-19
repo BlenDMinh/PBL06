@@ -8,6 +8,6 @@ const baseUserSchema = z.object({
   username: z.string(),
 });
 
-export type User = z.infer<typeof baseUserSchema> & {};
+export type User = z.infer<typeof baseUserSchema>;
 
-export const UserSchema: z.ZodType<User> = baseUserSchema.extend({});
+export const UserSchema: z.ZodType<User> = baseUserSchema;

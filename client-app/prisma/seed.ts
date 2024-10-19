@@ -54,7 +54,6 @@ async function main() {
   // Create an account for the user
   await prisma.account.create({
     data: {
-      email: "user_account@example.com",
       password: bcrypt.hashSync("password", 10),
       user: {
         connect: { id: user.id },

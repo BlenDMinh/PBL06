@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
     }
     const account = await prisma.account.findFirst({
       where: {
-        email: email,
+        user: {
+          email: email,
+        },
       },
       include: {
         user: {
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   } catch (error: any) {
+    console.log(error);
     return NextResponse.json(
       { message: "Email and password are required", error: "Bad request" },
       { status: 400 }
