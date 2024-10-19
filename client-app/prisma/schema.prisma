@@ -22,7 +22,6 @@ enum Result {
 
 model Account {
   id       Int    @id @default(autoincrement())
-  email    String @unique
   password String
   user     User   @relation(fields: [user_id], references: [id])
   user_id  Int    @unique @map("user_id")
@@ -35,7 +34,7 @@ model User {
   avatar       Image?        @relation(fields: [avatar_id], references: [id])
   avatar_id    Int?          @map("avatar_id")
   queries      Query[]
-  accounts     Account?
+  account     Account?
   subscription Subscription?
 }
 

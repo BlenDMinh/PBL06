@@ -3,7 +3,6 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 export function authenticate(req: NextRequest) {
   const bearer = req.headers.get("Authorization");
-  console.log(bearer);
   if (!bearer) {
     return null;
   }

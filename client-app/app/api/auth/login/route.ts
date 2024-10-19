@@ -38,7 +38,11 @@ export async function POST(req: NextRequest) {
         },
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            avatar: true,
+          },
+        },
       },
     });
     if (account && bcrypt.compareSync(password, account.password)) {
@@ -73,10 +77,11 @@ export async function POST(req: NextRequest) {
       return response;
     }
     return NextResponse.json(
-      { message: "Invalid email or password" },
+      { message: "Invalid email or password", error: "Unauthorized" },
       { status: 401 }
     );
   } catch (error: any) {
+    console.log(error);
     return NextResponse.json(
       { message: "Email and password are required", error: "Bad request" },
       { status: 400 }

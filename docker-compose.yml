@@ -4,7 +4,7 @@ volumes:
 services:
   database:
     container_name: mysql-database
-    image: mariadb:11.2.5-jammy
+    build: database
     restart: always
     env_file:
       - .env.docker.local
@@ -46,6 +46,18 @@ services:
     # volumes:
     #   - ./client-app/app:/app/app
     entrypoint: /app/run.sh
+    depends_on:
+      database:
+        condition: service_healthy
+
+  fastapi:
+    container_name: fastapi-ai-server
+    build: ai-server/.
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.docker.local
     depends_on:
       database:
         condition: service_healthy

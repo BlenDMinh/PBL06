@@ -1,8 +1,17 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clear the database
+  await prisma.query.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.subscription.deleteMany();
+  await prisma.plan.deleteMany();
+  await prisma.image.deleteMany();
+  await prisma.user.deleteMany();
+
   // Create some plans
   const basicPlan = await prisma.plan.create({
     data: {
@@ -45,8 +54,7 @@ async function main() {
   // Create an account for the user
   await prisma.account.create({
     data: {
-      email: "user_account@example.com",
-      password: "securepassword",
+      password: bcrypt.hashSync("password", 10),
       user: {
         connect: { id: user.id },
       },

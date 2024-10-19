@@ -7,11 +7,7 @@ export async function serverSideLogin(email: string, password: string) {
   const response = await api
     .post("/auth/login", { email, password })
     .catch((error) => {
-      return {
-        message: error.response.data.message,
-        data: null,
-        error: error.response.data.error,
-      };
+      return error.response;
     });
 
   const data = LoginResponseSchema.parse(response.data);
