@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { serverSideLogin } from "./action";
-import { loginSchema } from "@/lib/validation/validation";
+import { serverSideRegister } from "./action";
+import { registerSchema } from "@/lib/validation/validation";
 
-type LoginFormInputs = {
+type RegisterFormInputs = {
   email: string;
   password: string;
+  confirmPassword: string;
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const authenticationStore = useAuthenticateStore((state) => state);
   const router = useRouter();
 
@@ -21,12 +22,12 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormInputs>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormInputs>({
+    resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: LoginFormInputs) => {
-    const response = await serverSideLogin(data.email, data.password);
+  const onSubmit = async (data: RegisterFormInputs) => {
+    const response = await serverSideRegister(data.email, data.password);
     if (response.error) {
       alert(response.message);
       return;
@@ -51,7 +52,7 @@ export default function LoginPage() {
           onSubmit={handleSubmit(onSubmit)}
           className="w-full max-w-md bg-base-200 border-2 border-primary shadow-xl rounded-3xl flex flex-col p-6 sm:p-8 gap-6 sm:gap-10 items-center"
         >
-          <h1 className="text-xl sm:text-2xl font-bold text-center text-primary">Login</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-center text-primary">Register</h1>
           <div className="w-full flex flex-col items-start gap-4 sm:gap-8">
             <div className="w-full flex flex-col items-start gap-2">
               <input
@@ -71,16 +72,25 @@ export default function LoginPage() {
               />
               {errors.password && <span className="text-red-500 text-sm">{errors.password.message}</span>}
             </div>
+            <div className="w-full flex flex-col items-start gap-2">
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                {...register("confirmPassword")}
+                className="input input-bordered w-full"
+              />
+              {errors.confirmPassword && <span className="text-red-500 text-sm">{errors.confirmPassword.message}</span>}
+            </div>
             <button className="btn btn-outline w-full">
-              <span>Login</span>
+              <span>Register</span>
             </button>
             <div className="text-center">
-              <span>Doesn't have an account? </span>
+              <span>Already have an account? </span>
               <Link
-                href="/auth/register"
+                href="/auth/login"
                 className="transition-all text-info hover:text-base-content"
               >
-                Register
+                Login
               </Link>
             </div>
           </div>
