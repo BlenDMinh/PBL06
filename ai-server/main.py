@@ -5,10 +5,22 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import api
+import api.account
+import api.image
 import api.img2txt
+import api.plan
+import api.query
+import api.subscription
+import api.user
+from lib.data.database import create_db_and_tables
 
 app = FastAPI()
 log = logging.Logger("AIServer")
+
+# Database
+@app.on_event("startup")
+async def startup():
+  create_db_and_tables()
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
@@ -55,6 +67,12 @@ app.add_middleware(
 
 # Register Routes
 app.include_router(api.img2txt.router, prefix='/api')
+app.include_router(api.plan.router, prefix='/api')
+app.include_router(api.subscription.router, prefix='/api')
+app.include_router(api.user.router, prefix='/api')
+app.include_router(api.account.router, prefix='/api')
+app.include_router(api.image.router, prefix='/api')
+app.include_router(api.query.router, prefix='/api')
 
 origins = [
   'http://localhost'

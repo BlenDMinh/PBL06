@@ -71,7 +71,6 @@ async function main() {
   // Create a query for the user
   await prisma.query.create({
     data: {
-      query: "Example query",
       user: {
         connect: { id: user.id },
       },
