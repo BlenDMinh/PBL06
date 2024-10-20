@@ -48,7 +48,6 @@ model Image {
 
 model Query {
   id         Int      @id @default(autoincrement())
-  query      String
   user       User     @relation(fields: [user_id], references: [id])
   user_id    Int      @map("user_id")
   image      Image    @relation(fields: [image_id], references: [id])
