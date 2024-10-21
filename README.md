@@ -1,137 +1,70 @@
-# PBL06 - Image2Text
+### PBL06 - Image2Text
 
-# Setup by Docker
-
-### Environment
-
-First of all, you need to make an env file `.env.docker.local` base on the example below:
-
+# FOR DEVELOPMENT
+Create an .env file in `./`, `./client-app/`, `./server-app/` and `./server-ai/`:
 ```env
+# Host config
+MYSQL_DB_HOST=localhost
+MYSQL_DB_PORT=3306
+SERVER_APP_HOST=localhost
+SERVER_APP_PORT=8000
+SERVER_AI_HOST=localhost
+SERVER_AI_PORT=8080
+
+APP_ENV=Development
+
 # MySQL Database env
-MYSQL_USER=<your_mysql_user>
-MYSQL_PASSWORD=<your_mysql_password>
-MYSQL_DATABASE=<your_mysql_database>
-MYSQL_DB_PORT=<your_mysql_port>
+MYSQL_USER=<username>
+MYSQL_PASSWORD=<password>
+MYSQL_DATABASE=<database>
+DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_DB_HOST}:${MYSQL_DB_PORT}/${MYSQL_DATABASE}
 
 # Nextjs env
-APP_ENV=<Development or Production>
-LOCAL_API_URL=<your_local_api_url> # http://localhost:3000
-DATABASE_URL=<your_database_url> # mysql://user:password@host:port/schema,
-# For docker: mysql://user:password@database:port/schema,
+LOCAL_API_URL=http://localhost:3000/api
+JWT_SECRET=<secret>
+PING_INTERVAL=60 # 60 seconds
+ACCESS_TOKEN_EXPI=30m # 30 minutes
+REFRESH_TOKEN_EXPI=30d # 30 days
 
-JWT_SECRET=<your_jwt_secret>
-PING_INTERVAL=<seconds> # 60 seconds
-ACCESS_TOKEN_EXPI=<minutes> # 30 minutes
-REFRESH_TOKEN_EXPI=<days> # 30 days
+# FastAPI AI env
+GIT_MODEL_NAME=GIT_LARGE_R_COCO
+GIT_MODEL_PATH=output/${GIT_MODEL_NAME}/snapshot/model.pt
+GIT_PARAM_PATH=./lib/git/aux_data/models/${GIT_MODEL_NAME}/parameter.yaml
+SERVER_AI_DATABASE_ECHO=0
+```
+Compose up ONLY Database in Docker:
+```
+docker compose up database -d
 ```
 
-...and `init-user.sql`:
+## For FastAPI Development
 
-```SQL
--- init-user.sql
-
--- Grant ALL privileges to the user on all databases
-GRANT ALL PRIVILEGES ON *.* TO '<username>'@'%' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
+### Run FastAPI server
+For AI Server, run at port 8080
+```
+uvicorn main:app --host 0.0.0.0 --port 8080 --reload --log-config logging.config.yml --use-colors
+```
+For App Server, run at port 8000
+```
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-config logging.config.yml --use-colors
 ```
 
-### Booting up
+## For NextJS Development
 
-Run everything in Docker by composing up:
-
-```bash
-docker compose up -d
+Run NextJS client
+```
+pnpm run dev
 ```
 
-or if you want to run Database only (for Development):
+## Database Migration
+*For now all database migration is on NextJS, this will be moved to FastAPI later*
 
-```bash
-docker compose -f docker-compose.databaseonly.yml up -d
+Migrate database
 ```
-
-_Note: To interact with database, you need to configure .env file in client-app. See [Client-app setup](#installation)_
-
-# Setup Manually
-
-## AI Server
-
-Updating...
-
-## Nextjs Backend and Frontend
-
-### Installation
-
-You can run installation script below
-
-#### Windows
-
-```bash
-Updating...
-```
-
-#### Linux
-
-```bash
-Updating...
-```
-
-#### ...or setup manually
-
-```bash
-cd client-app
-```
-
-Before jumping into the server setup, you need to install nextjs and ts-node manually:
-
-```bash
-pnpm install next@latest react@latest react-dom@latest
-pnpm install -g ts-node
-```
-
-Once it is done, you are ready to go
-
-First create a file named `.env` with the content below:
-
-```bash
-LOCAL_API_URL=<your_local_api_url> # http://localhost:3000
-DATABASE_URL=<your_database_url> # mysql://user:password@host:port/database
-JWT_SECRET=<your_jwt_secret>
-PING_INTERVAL=<seconds> # 60 seconds
-ACCESS_TOKEN_EXPI=<minutes> # 30 minutes
-REFRESH_TOKEN_EXPI=<days> # 30 days
-```
-
-**Note**: Remeber to replace the <> with your configs
-
-Next, migrate and seed the data
-
-```bash
 npx prisma migrate deploy
 ```
 
-...or in development
-
-```bash
-npx prisma migrate dev
+Seeding database
 ```
-
-Just in case if seeding **failed** during migration phase, you can run the command below to manually seed data:
-
-
-```bash
 npx prisma db seed
-```
-
-#### Run the server with:
-
-
-```bash
-pnpm run start
-```
-
-...or in development
-
-
-```bash
-pnpm run dev
 ```
