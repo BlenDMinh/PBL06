@@ -50,9 +50,28 @@ services:
       database:
         condition: service_healthy
 
-  fastapi:
+  server-ai:
     container_name: fastapi-ai-server
-    build: ai-server/.
+    build: server-ai/.
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.docker.local
+    depends_on:
+      database:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  server-app:
+    container_name: fastapi-ai-server
+    build: server-app/.
     restart: always
     ports:
       - "8000:8000"

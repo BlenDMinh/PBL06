@@ -4,11 +4,16 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import api
 import api.img2txt
+from lib.data.database import create_db_and_tables
 
 app = FastAPI()
 log = logging.Logger("AIServer")
+
+# Database
+@app.on_event("startup")
+async def startup():
+  create_db_and_tables()
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
