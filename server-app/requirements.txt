@@ -3,3 +3,6 @@ python-multipart
 python-dotenv
 sqlalchemy
 PyMySQL
+pyjwt
+passlib
+bcrypt
