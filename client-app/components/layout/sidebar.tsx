@@ -23,38 +23,47 @@ export default function Sidebar() {
     init();
   }, [authenticationStore]);
   return (
-    <div className="sticky w-60 bg-base-300 flex flex-col items-center justify-between py-8">
-      <Link href="/" className="font-bold text-secondary-content text-2xl">
+    <div className="sticky w-60 bg-base-300 flex flex-col items-center justify-between py-8 h-screen">
+      <Link href="/" className="font-bold text-secondary-content text-2xl mb-8">
         Logo
       </Link>
-      <div className="flex flex-col justify-evenly grow items-start px-8 w-full">
-        <Link href="/">
+      <div className="flex flex-col justify-center grow items-start px-8 w-full">
+        <Link href="/" className="mb-4">
           <span className="flex items-center gap-5 text-primary text-xl font-bold btn btn-ghost">
             <Home01Icon size={32} />
             Home
           </span>
         </Link>
-        <Link href="/">
+        <Link href="/" className="mb-4">
           <span className="flex items-center gap-5 text-primary text-xl font-bold btn btn-ghost">
             <LaptopIcon size={32} />
             Devices
           </span>
         </Link>
       </div>
-      <div className="w-full px-8">
+      <div className="w-full mt-auto px-8">
         {isAuthenticated === undefined ? (
           <div className="flex items-center h-48 w-full">
             <div className="skeleton bg-secondary w-16 h-16 rounded-full"></div>
           </div>
         ) : isAuthenticated ? (
-          <div className="flex items-center h-48 w-full">
             <div className="flex flex-col h-full items-start gap-1 text-white">
-              <span className="text-base-content">
-                Logged in as{" "}
-                <span className="font-bold text-primary">{user?.username}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt="User Avatar"
+                    className="w-16 h-16 rounded-full"
+                  />
+                ) : (
+                  <div className="skeleton bg-secondary w-16 h-16 rounded-full"></div>
+                )}
+                <span className="text-base-content">
+                  Hello, <span className="font-bold text-primary">{user?.username}</span>
+                </span>
+              </div>
               <button
-                className="hover:text-accent text-secondary transition-all"
+                className="btn btn-outline w-full mt-4"
                 onClick={() => {
                   handleLogout();
                   authenticationStore.setIsAuthenticated(false);
@@ -64,13 +73,10 @@ export default function Sidebar() {
                 Logout
               </button>
             </div>
-          </div>
         ) : (
-          <div className="h-48">
-            <Link href="/auth/login" className="btn btn-outline w-full">
-              Login
-            </Link>
-          </div>
+          <Link href="/auth/login" className="btn btn-outline w-full">
+            Login
+          </Link>
         )}
       </div>
     </div>
