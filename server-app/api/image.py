@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from lib.data.database import get_db
 from lib.data.models import Image
 from lib.schema.data import ImageCreate, ImageSchema
+from lib.service.cloudinary_service import CloudinaryService, get_cloudinary_service
 
 
 router = APIRouter()
@@ -12,6 +13,19 @@ router = APIRouter()
 def get_all_images(skip: int = Query(0), limit: int = Query(10), db: Session = Depends(get_db)):
     images = db.query(Image).offset(skip).limit(limit).all()
     return images
+
+@router.post("/images/upload", response_model=ImageSchema)
+async def upload_image(
+    image: UploadFile, 
+    cloudinary_service: CloudinaryService = Depends(get_cloudinary_service), 
+    db: Session = Depends(get_db)
+):
+    image_bytes = await image.read()
+    image = cloudinary_service.upload(image_bytes)
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    return image
 
 @router.post("/images/", response_model=ImageSchema)
 def create_image(image: ImageCreate, db: Session = Depends(get_db)):
