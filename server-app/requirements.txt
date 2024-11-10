@@ -6,3 +6,5 @@ PyMySQL
 pyjwt
 passlib
 bcrypt
+regex
+cloudinary
