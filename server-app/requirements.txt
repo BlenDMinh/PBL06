@@ -6,3 +6,4 @@ PyMySQL
 pyjwt
 passlib
 bcrypt
+regex
