@@ -51,8 +51,7 @@ async def log_request_middleware(request: Request, call_next):
     return response
 
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
+    "*",
 ]
 
 # Register Middlewares
