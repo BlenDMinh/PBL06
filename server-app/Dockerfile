@@ -5,12 +5,6 @@ USER root
 # Install dos2unix
 RUN apt-get update && apt-get install dos2unix
 
-# Install Git
-RUN apt-get update && \
-apt-get install -y git && \
-apt-get clean && \
-rm -rf /var/lib/apt/lists/*
-
 # Install wget
 RUN apt-get update && \
 apt-get install -y wget && \
@@ -19,12 +13,6 @@ rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
 WORKDIR /app
-
-COPY install.sh .
-RUN dos2unix ./install.sh
-RUN chmod +x ./install.sh
-
-RUN ./install.sh
 
 # Copy the requirements file to the working directory
 COPY requirements.txt .

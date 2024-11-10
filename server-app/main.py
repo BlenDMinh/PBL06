@@ -11,6 +11,7 @@ import api.plan
 import api.query
 import api.subscription
 import api.user
+import api.auth
 from lib.data.database import create_db_and_tables
 
 app = FastAPI()
@@ -71,6 +72,7 @@ app.include_router(api.user.router, prefix='/api')
 app.include_router(api.account.router, prefix='/api')
 app.include_router(api.image.router, prefix='/api')
 app.include_router(api.query.router, prefix='/api')
+app.include_router(api.auth.router, prefix='/api')
 
 origins = [
   'http://localhost'
