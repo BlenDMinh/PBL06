@@ -8,3 +8,4 @@ passlib
 bcrypt
 regex
 cloudinary
+psycopg2
