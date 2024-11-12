@@ -7,7 +7,7 @@ import jwt
 from lib.dependencies import authenticate
 from lib.data.database import get_db
 from lib.data.models import User, Account
-from lib.schema.auth import LoginRequest
+from lib.schema.auth import LoginRequest, RegisterRequest
 
 from env import config
 
@@ -62,5 +62,48 @@ def login(login_request: LoginRequest = None, user: User = Depends(authenticate)
             "user": account.user,
             "access_token": access_token,
             "refresh_token": refresh_token,
+        }
+    }
+
+@router.post("/auth/register/")
+def register(register_request: RegisterRequest, db: Session = Depends(get_db)):
+    # Check if email and password are provided
+    if not register_request.email or not register_request.password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+    
+    # Check if email is valid (basic validation)
+    if "@" not in register_request.email or "." not in register_request.email:
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    # Check if password meets basic security requirements (e.g., length)
+    if len(register_request.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+    
+    # Check if email is already registered
+    existing_user = db.query(User).filter(User.email == register_request.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Check if username are provided
+    if not register_request.username:
+        raise HTTPException(status_code=400, detail="Username are required")
+    
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed_password = pwd_context.hash(register_request.password)
+    
+    new_user = User(email=register_request.email, username=register_request.username)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    new_account = Account(user_id=new_user.id, password=hashed_password)
+    db.add(new_account)
+    db.commit()
+    db.refresh(new_account)
+    db.refresh(new_user)
+    return {
+        "message": "Registration successful",
+        "data": {
+            "user": new_user
         }
     }
