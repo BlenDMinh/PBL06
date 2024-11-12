@@ -5,6 +5,7 @@ import logging
 from torch import nn
 from pprint import pformat
 import functools
+from transformers.modeling_outputs import ModelOutput
 
 
 class TextualHead(nn.Module):
@@ -774,7 +775,7 @@ class SmoothLabelCrossEntropyLoss(nn.Module):
 class CaptioningModel(nn.Module):
     def __init__(
         self,
-        visual,
+        visuals,
         textual,
         sos_index=1,
         eos_index=2,
@@ -790,7 +791,7 @@ class CaptioningModel(nn.Module):
         num_image_with_embedding=0,
     ):
         super().__init__()
-        self.image_encoder = visual
+        self.image_encoders = visuals
         self.textual = textual
         self.padding_idx = self.textual.padding_idx
 
@@ -838,13 +839,28 @@ class CaptioningModel(nn.Module):
     def forward(self, batch):
         result = self.forward_one(batch, return_info=False)
         return result
+    
+    def image_encoder(self, image, ensemble_method='avg'):
+        features = [encoder(image) for encoder in self.image_encoders]
+        features = [f.last_hidden_state if isinstance(f, ModelOutput) else f for f in features]
+        # Crop features to the same sequence length
+        min_len = min([f.shape[1] for f in features])
+        features = [f[:, :min_len] for f in features]
+        if ensemble_method == 'avg':
+            visual_features = torch.stack(features, dim=1).mean(dim=1)
+        else:
+            raise NotImplementedError
+        return visual_features
 
         # shape: (batch_size, channels, height, width)
     def forward_one(self, batch, return_info=False):
         # shape: (batch_size, max_caption_length, vocab_size)
         if 'image' in batch:
             if isinstance(batch['image'], (list, tuple)):
-                features = [self.image_encoder(im) for im in batch['image']]
+                if len(self.image_encoders) > 1:
+                    features = [self.image_encoder(im) for im in batch['image']]
+                else:
+                    features = [self.image_encoders[0](im).last_hidden_state for im in batch['image']]
                 if self.num_image_with_embedding:
                     features = [f + e for f, e in zip(features, self.img_temperal_embedding)]
                 if self.pooling_images is None:
@@ -854,7 +870,10 @@ class CaptioningModel(nn.Module):
                 else:
                     raise NotImplementedError
             else:
-                visual_features = self.image_encoder(batch['image'])
+                if len(self.image_encoders) > 1:
+                    visual_features = self.image_encoder(batch['image'])
+                else:
+                    visual_features = self.image_encoders[0](batch['image']).last_hidden_state
         else:
             visual_features = None
         visual_features_valid = None

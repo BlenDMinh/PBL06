@@ -22,6 +22,7 @@ def parse_dotenv():
     }
 
 config = parse_dotenv()
+print(config)
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 param = {}
 if File.isfile(config['param_path']):
@@ -30,8 +31,8 @@ if File.isfile(config['param_path']):
 def prepare_model():    
     model = get_git_model(tokenizer, param)
     pretrained = config['model_path']
-    checkpoint = torch.load(pretrained)['model']
-    load_state_dict(model, checkpoint)
+    checkpoint = torch.load(pretrained)
+    model.textual.load_state_dict(checkpoint["model"])
     model.cuda()
     model.eval()
 

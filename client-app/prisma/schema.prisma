@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,58 +7,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Result {
-  PENDING
-  SUCCESS
-  REJECTED
-  ERROR
-}
-
 model Account {
   id       Int    @id @default(autoincrement())
   password String
-  user     User   @relation(fields: [user_id], references: [id])
-  user_id  Int    @unique @map("user_id")
+  user_id  Int?   @unique(map: "user_id") @map("user_id")
+  user     User?  @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "Account_ibfk_1")
 }
 
 model User {
   id           Int           @id @default(autoincrement())
-  email        String        @unique
+  email        String        @unique(map: "email")
   username     String?
-  avatar       Image?        @relation(fields: [avatar_id], references: [id])
   avatar_id    Int?          @map("avatar_id")
+  account      Account?
   queries      Query[]
-  account     Account?
   subscription Subscription?
+  avatar       Image?        @relation(fields: [avatar_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "User_ibfk_1")
+
+  @@index([avatar_id], map: "avatar_id")
 }
 
 model Image {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   image_url  String
-  created_at DateTime @default(now())
-  users      User[]
+  created_at DateTime? @default(now()) @db.DateTime(0)
   queries    Query[]
+  users      User[]
 }
 
 model Query {
-  id         Int      @id @default(autoincrement())
-  user       User     @relation(fields: [user_id], references: [id])
-  user_id    Int      @map("user_id")
-  image      Image    @relation(fields: [image_id], references: [id])
-  image_id   Int      @map("image_id")
-  result     Result   @default(PENDING)
+  id         Int       @id @default(autoincrement())
+  user_id    Int?      @map("user_id")
+  image_id   Int?      @map("image_id")
+  result     String?
   content    String?
   used_token Int
-  created_at DateTime @default(now())
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  user       User?     @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "Query_ibfk_1")
+  image      Image?    @relation(fields: [image_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "Query_ibfk_2")
+
+  @@index([image_id], map: "image_id")
+  @@index([user_id], map: "user_id")
 }
 
 model Subscription {
-  id         Int      @id @default(autoincrement())
-  user       User     @relation(fields: [user_id], references: [id])
-  user_id    Int      @unique @map("user_id")
-  plan       Plan     @relation(fields: [plan_id], references: [id])
-  plan_id    Int      @map("plan_id")
-  created_at DateTime @default(now())
+  id         Int       @id @default(autoincrement())
+  user_id    Int?      @unique(map: "user_id") @map("user_id")
+  plan_id    Int?      @map("plan_id")
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  user       User?     @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "Subscription_ibfk_1")
+  plan       Plan?     @relation(fields: [plan_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "Subscription_ibfk_2")
+
+  @@index([plan_id], map: "plan_id")
 }
 
 model Plan {
@@ -72,6 +66,6 @@ model Plan {
   name          String
   monthy_token  Int
   daily_token   Int
-  price         Float
+  price         Float          @db.Float
   subscriptions Subscription[]
 }

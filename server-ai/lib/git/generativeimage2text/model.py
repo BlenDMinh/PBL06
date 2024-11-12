@@ -1,54 +1,67 @@
+import transformers
 from .torch_common import resize_2d_pos_embed
 import torch
 from .layers.CLIP import clip
 from .layers.decoder import CaptioningModel
-from .layers.decoder import (TransformerDecoderTextualHead,
-                             AutoRegressiveBeamSearch, GeneratorWithBeamSearch)
+from .layers.decoder import (AutoRegressiveBeamSearch, GeneratorWithBeamSearch)
+from .bit_layers.decoder import TransformerDecoderTextualHead
+# from .layers.decoder import TransformerDecoderTextualHead
 
 
 def get_git_model(tokenizer, param):
-    image_encoder = get_image_encoder(
-        param.get('image_encoder_type', 'CLIPViT_B_16'),
-        input_resolution=param.get('test_crop_size', 224),
-    )
+    dinov2_encoder = transformers.AutoModel.from_pretrained("facebook/dinov2-base")
+    image_encoders = torch.nn.ModuleList([
+        dinov2_encoder,
+        # mamba_encoder
+        # get_image_encoder(
+        #     param.get('image_encoder_type', 'CLIPViT_B_16'),
+        #     input_resolution=param.get('test_crop_size', 224),
+        # ),
+        # blip_encoder,
+        # normic_encoder
+    ])
+    # image_encoder = get_image_encoder(
+    #     param.get('image_encoder_type', 'CLIPViT_B_16'),
+    #     input_resolution=param.get('test_crop_size', 224),
+    # )
     text_decoder = TransformerDecoderTextualHead(
         visual_feature_size=param.get('visual_feature_size', 768),
         vocab_size=30522,
-        hidden_size=768,
+        hidden_size=param.get('textual_feature_size', 768),
         num_layers=6,
         attention_heads=12,
-        feedforward_size=768* 4,
+        feedforward_size=param.get('textual_feature_size', 768)* 4,
         max_caption_length=1024,
         mask_future_positions=True,
         padding_idx=0,
         decoder_type='bert_en',
         visual_projection_type='linearLn',
     )
-    #decoder = AutoRegressiveBeamSearch(
-        #eos_index=tokenizer.sep_token_id,
-        #max_steps=40,
-        #beam_size=1,
-        #per_node_beam_size=1,
-        #fix_missing_prefix=True,
-    #)
+    # decoder = AutoRegressiveBeamSearch(
+    #     eos_index=tokenizer.sep_token_id,
+    #     max_steps=40,
+    #     # beam_size=1,
+    #     # per_node_beam_size=1,
+    #     fix_missing_prefix=True,
+    # )
     decoder = GeneratorWithBeamSearch(
         eos_index=tokenizer.sep_token_id,
-        #max_steps=40,
-        max_steps=1024,
+        max_steps=128,
+        # max_steps=1024,
         beam_size=4,
         length_penalty=0.6,
     )
 
-    #from .trie_decoder import TrieAutoRegressiveBeamSearch, get_trie
-    #decoder = TrieAutoRegressiveBeamSearch(
-        #eos_index=tokenizer.sep_token_id,
-        #max_steps=1022,
-        #beam_size=1,
-        #trie=get_trie(tokenizer),
-    #)
+    # from .trie_decoder import TrieAutoRegressiveBeamSearch, get_trie
+    # decoder = TrieAutoRegressiveBeamSearch(
+    #     eos_index=tokenizer.sep_token_id,
+    #     max_steps=40,
+    #     beam_size=1,
+    #     trie=get_trie(tokenizer),
+    # )
 
     model = CaptioningModel(
-        image_encoder,
+        image_encoders,
         text_decoder,
         decoder=decoder,
         sos_index=tokenizer.cls_token_id,

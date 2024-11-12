@@ -23,10 +23,7 @@ class CloudinaryService:
     def upload(self, file):
         result = cloudinary.uploader.upload(file)
         url, _ = cloudinary_url(result['public_id'], fetch_format="auto", quality="auto")
-        image = Image(
-            image_url=url,
-        )
-        return image
+        return url
 
     def destroy(self, public_id):
         cloudinary.uploader.destroy(public_id)
