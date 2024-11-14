@@ -6,8 +6,6 @@ const RegisterResponseSchema = WrapperResponse.extend({
   data: z
     .object({
       user: UserSchema,
-      access_token: z.string(),
-      refresh_token: z.string(),
     })
     .nullish(),
 });

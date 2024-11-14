@@ -1,16 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
+import { uploadImage, getImageDisplayText } from "@/lib/util/api";
+import useAuthenticateStore from "@/lib/store/authenticate.store";
+import { toast } from 'react-toastify';
 
 export default function Home() {
   const [imageLink, setImageLink] = useState("");
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [displayText, setDisplayText] = useState<string>("");
+  const [typedText, setTypedText] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [processCompleted, setProcessCompleted] = useState<boolean>(false);
+
+  const { ensuredInitialized, isAuthenticated, user } = useAuthenticateStore((state) => ({
+    ensuredInitialized: state.ensuredInitialized,
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
+  }));
+
+  useEffect(() => {
+    ensuredInitialized();
+  }, [ensuredInitialized]);
 
   const onDrop = (acceptedFiles: File[]) => {
     setDroppedFiles(acceptedFiles);
+    setProcessCompleted(false);
 
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
@@ -61,7 +79,50 @@ export default function Home() {
     setDroppedFiles([]);
     setPreviewImage(null);
     setLinkError(null);
+    setDisplayText("");
+    setTypedText("");
+    setProcessCompleted(false);
   };
+
+  const handleSend = async () => {
+    setLoading(true);
+    try {
+      if (droppedFiles.length > 0) {
+        const uploadResponse = await uploadImage(droppedFiles[0]);
+        const imageId = uploadResponse.id;
+        const displayTextResponse = await getImageDisplayText(imageId);
+        setImageLink(displayTextResponse.image_url);
+        setDisplayText(" " + displayTextResponse.image_url);
+      } else if (imageLink) {
+        setDisplayText("Image link set successfully!");
+      }
+      toast.success("Image processed successfully!");
+      setProcessCompleted(true);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      setLinkError("Error uploading image");
+      toast.error("Error uploading image");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let index = 0;
+    let typingInterval: NodeJS.Timeout;
+
+    if (displayText) {
+      typingInterval = setInterval(() => {
+        setTypedText((prev) => prev + displayText.charAt(index));
+        index++;
+        if (index >= displayText.length) {
+          clearInterval(typingInterval);
+        }
+      }, 100);
+    }
+
+    return () => clearInterval(typingInterval);
+  }, [displayText]);
 
   return (
     <div className="min-h-screen p-8">
@@ -94,12 +155,33 @@ export default function Home() {
           <div className="relative w-full max-w-xs">
             <img src={previewImage} alt="Image Preview" className="object-contain w-full h-auto" />
           </div>
-          <button
-            onClick={handleCancelImage}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md"
-          >
-            Cancel Image
-          </button>
+          <div className="mt-4 flex space-x-4">
+            <button
+              onClick={handleCancelImage}
+              className="px-4 py-2 bg-red-600 text-white rounded-md"
+            >
+              Cancel Image
+            </button>
+            {!processCompleted && (
+              <button
+                onClick={handleSend}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {loading && (
+        <div className="mt-4 flex justify-center">
+          <div className="loader"></div>
+        </div>
+      )}
+      {displayText && (
+        <div className="mt-8 p-4 border border-gray-300 rounded-lg">
+          <p>{typedText}</p>
         </div>
       )}
     </div>

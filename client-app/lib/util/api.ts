@@ -1,4 +1,4 @@
-import axios, { AxiosHeaders } from "axios";
+import axios from "axios";
 import { GetServerSidePropsContext } from "next";
 
 let context: GetServerSidePropsContext | null = null;
@@ -10,8 +10,8 @@ const isServer = () => {
   return typeof window === "undefined";
 };
 
-export const api = axios.create({
-  baseURL: process.env.LOCAL_API_URL,
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -30,12 +30,36 @@ export async function axiosInitialize() {
     (response) => response,
     (error) => {
       console.log(error);
-      // if (error.response.status === 401) {
-      //   // refresh token
-
-      //   console.log("refresh token");
-      // }
       return Promise.reject(error);
     }
   );
 }
+
+export const uploadImage = async (imageFile: File) => {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+
+  try {
+    const response = await api.post("/images/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+};
+
+export const getImageDisplayText = async (id: number) => {
+  try {
+    const response = await api.get(`/images/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching image display text:", error);
+    throw error;
+  }
+};
+
+export default api;
