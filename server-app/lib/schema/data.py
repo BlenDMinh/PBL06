@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 
@@ -15,8 +15,9 @@ class AccountCreate(AccountBase):
 class AccountSchema(AccountBase):
     id: int
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 
 class ImageBase(BaseModel):
@@ -31,8 +32,9 @@ class ImageSchema(ImageBase):
     id: int
     created_at: datetime
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 
 class QueryBase(BaseModel):
@@ -51,8 +53,9 @@ class QuerySchema(QueryBase):
     id: int
     created_at: datetime
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 
 class SubscriptionBase(BaseModel):
@@ -68,8 +71,9 @@ class SubscriptionSchema(SubscriptionBase):
     id: int
     created_at: datetime
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 
 class PlanBase(BaseModel):
@@ -86,8 +90,9 @@ class PlanCreate(PlanBase):
 class PlanSchema(PlanBase):
     id: int
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 
 class UserBase(BaseModel):
@@ -106,5 +111,6 @@ class UserSchema(UserBase):
     account: Optional[AccountSchema]
     subscription: Optional[SubscriptionSchema]
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
