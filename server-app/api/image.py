@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from lib.data.database import get_db
@@ -49,11 +49,13 @@ async def upload_image(
     return image
 
 @router.post("/images/", response_model=ImageSchema)
-def create_image(image: ImageCreate, db: Session = Depends(get_db)):
+def create_image(image: ImageCreate, response: Response, db: Session = Depends(get_db)):
     db_image = Image(**image.model_dump())
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
+    # Set status code to 201
+    response.status_code = 201
     return db_image
 
 @router.get("/images/{image_id}", response_model=ImageSchema)

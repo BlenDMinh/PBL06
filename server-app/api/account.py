@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from lib.data.database import get_db
@@ -13,11 +13,13 @@ def get_all_accounts(skip: int = Query(0), limit: int = Query(10), db: Session =
     return accounts
 
 @router.post("/accounts/", response_model=AccountSchema)
-def create_account(account: AccountCreate, db: Session = Depends(get_db)):
+def create_account(account: AccountCreate, response: Response, db: Session = Depends(get_db)):
     db_account = Account(**account.model_dump())
     db.add(db_account)
     db.commit()
     db.refresh(db_account)
+    # Set status code to 201
+    response.status_code = 201
     return db_account
 
 @router.get("/accounts/{account_id}", response_model=AccountSchema)
