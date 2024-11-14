@@ -9,3 +9,6 @@ bcrypt
 regex
 cloudinary
 psycopg2-binary
+htmlx
+pytest
+pytest-cov

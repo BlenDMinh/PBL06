@@ -39,14 +39,20 @@ env_keys = [
     "CLOUDINARY_API_SECRET",
 ]
 
-config = dotenv_values(".env")
+config = {}
 
-import os
+def load_env(file=".env"):
+    # Clear all environment variables that exists in .env
+    config = dotenv_values(file)
 
-# Override .env values with OS environment variables if they exist
-config = {key: os.getenv(key, default=config.get(key, "")) for key in env_keys}
+    import os
 
-logging.info(f"Config: {config}")
+    # Override .env values with OS environment variables if they exist
+    config = {key: os.getenv(key, default=config.get(key, "")) for key in env_keys}
+
+    logging.info(f"Config: {config}")
+
+load_env()
 
 if __name__ == "__main__":
     # Clear all environment variables that exists in .env
