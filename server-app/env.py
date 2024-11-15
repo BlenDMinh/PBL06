@@ -42,6 +42,9 @@ env_keys = [
 config = {}
 
 def load_env(file=".env"):
+    global config
+    if config.keys():
+        return
     # Clear all environment variables that exists in .env
     config = dotenv_values(file)
 
