@@ -1,4 +1,4 @@
-import axios, { AxiosHeaders } from "axios";
+import axios from "axios";
 import { GetServerSidePropsContext } from "next";
 
 let context: GetServerSidePropsContext | null = null;
@@ -10,15 +10,17 @@ const isServer = () => {
   return typeof window === "undefined";
 };
 
-export const api = axios.create({
-  baseURL: process.env.LOCAL_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export const getServerAppAxio = () => {
+  const api = axios.create({
+    baseURL: process.env.API_BASE_URL,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
-export async function axiosInitialize() {
-  await api.interceptors.request.use((config) => {
+  if (isServer()) return api;
+
+  api.interceptors.request.use((config) => {
     const access_token = localStorage.getItem("access_token");
     if (access_token) {
       config.headers.Authorization = `Bearer ${access_token}`;
@@ -26,16 +28,13 @@ export async function axiosInitialize() {
     return config;
   });
 
-  await api.interceptors.response.use(
+  api.interceptors.response.use(
     (response) => response,
     (error) => {
       console.log(error);
-      // if (error.response.status === 401) {
-      //   // refresh token
-
-      //   console.log("refresh token");
-      // }
       return Promise.reject(error);
     }
   );
-}
+
+  return api;
+};

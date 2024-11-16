@@ -50,8 +50,8 @@ const useAuthenticateStore = create<AuthenticateStore>((set, get) => ({
   },
   saveLoginToken: (access_token: string, refresh_token: string) => {
     localStorage.setItem("access_token", access_token);
-    set({ access_token });
     localStorage.setItem("refresh_token", refresh_token);
+    set({ access_token, refresh_token });
   },
 }));
 

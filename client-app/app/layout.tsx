@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import useAuthenticateStore from "@/lib/store/authenticate.store";
 import Sidebar from "@/components/layout/sidebar";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,8 +34,11 @@ export default function RootLayout({
       >
         <div className="flex w-full">
           <Sidebar />
-          <div className="grow">{children}</div>
+          <div className="grow">
+            {children}
+          </div>
         </div>
+        <ToastContainer />
       </body>
     </html>
   );

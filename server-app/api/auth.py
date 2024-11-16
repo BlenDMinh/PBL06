@@ -1,5 +1,5 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, logger
+from fastapi import APIRouter, Depends, HTTPException, Response, logger
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import jwt
@@ -10,6 +10,7 @@ from lib.data.models import User, Account
 from lib.schema.auth import LoginRequest, RegisterRequest
 
 from env import config
+from lib.util.jwt_util import make_access_token, make_refresh_token
 
 
 router = APIRouter()
@@ -32,30 +33,10 @@ def login(login_request: LoginRequest = None, user: User = Depends(authenticate)
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     if not pwd_context.verify(login_request.password, account.password):
         raise HTTPException(status_code=401, detail="Invalid password")
-    now = datetime.datetime.now(datetime.timezone.utc)
-    iat = datetime.datetime.now(datetime.timezone.utc).timestamp()
-    refresh_exp = (now + datetime.timedelta(days=float(config["REFRESH_TOKEN_EXPI"]))).timestamp()
-    access_exp = (now + datetime.timedelta(minutes=float(config["ACCESS_TOKEN_EXPI"]))).timestamp()
-    refresh_token = jwt.encode(
-        {
-            "sub": account.user.id,
-            "iss": "api",
-            "iat": iat,
-            "exp": refresh_exp
-        }, 
-        config["JWT_SECRET"], 
-        algorithm="HS256",
-    )
-    access_token = jwt.encode(
-        {
-            "sub": account.user.id,
-            "iss": "api",
-            "iat": iat,
-            "exp": access_exp
-        }, 
-        config["JWT_SECRET"], 
-        algorithm="HS256",
-    )
+    
+    refresh_token = make_refresh_token(account.user.id)
+    access_token = make_access_token(refresh_token)
+
     return {
         "message": "Login successful",
         "data": {
@@ -105,5 +86,36 @@ def register(register_request: RegisterRequest, db: Session = Depends(get_db)):
         "message": "Registration successful",
         "data": {
             "user": new_user
+        }
+    }
+
+@router.get("/auth/me")
+def get_me(response: Response, user: User = Depends(authenticate)):
+    if user:
+        return {
+            "message": "User already logged in",
+            "data": {
+                "user": user
+            }
+        }
+    response.status_code = 403
+    return {
+        "error": "Unauthorized",
+        "message": "Access token is invalid"
+    }
+
+@router.post("/auth/refresh")
+def refresh_access_token(response: Response, refresh_token: str):
+    access_token = make_access_token(refresh_token)
+    if not access_token:
+        response.status_code = 400
+        return {
+            "error": "Bad request",
+            "message": "Refresh token is invalid"
+        }
+    return {
+        "message": "Successfully refresh access token",
+        "data": {
+            "access_token": access_token
         }
     }

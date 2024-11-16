@@ -1,10 +1,12 @@
 "use server";
 
+import { error } from "console";
 import { UserSchema } from "../schema/data/user.schema";
-import { api } from "../util/api";
+import { getServerAppAxio } from "../util/api";
 
 export async function tokenLogin(access_token: string) {
   console.log(access_token);
+  const api = getServerAppAxio();
   const response = await api
     .get("/auth/me", {
       headers: {
@@ -14,7 +16,12 @@ export async function tokenLogin(access_token: string) {
     .catch((error) => {
       return error.response;
     });
-  console.log(response.data);
+  if (response.status != 200) {
+    console.error(
+      `${response.config.method} ${response.status}: ${response.data}`
+    );
+    return null;
+  }
   const user = UserSchema.parse(response.data.data.user);
   return user;
 }
