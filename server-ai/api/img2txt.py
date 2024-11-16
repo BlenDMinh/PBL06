@@ -1,13 +1,15 @@
 from datetime import datetime
 import logging
 import sys
-from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, Response, UploadFile
 from lib import git
 from io import BytesIO
 from PIL import Image
 from sqlalchemy.orm import Session
 from lib.data.database import get_db
-from lib.data.models import Query
+from lib.data.models import Query, User
+from lib.dependencies import authenticate
+from lib.service.image_service import ImageService, get_image_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -27,17 +29,40 @@ async def create_img2txt_task(image: Image, query_id: int, db: Session):
   except Exception as e:
     logger.error("Error while processing image to text. Query ID: %s", query_id)
     logger.error(e)
-    query.result = "ERROR"
+    query.result = "ERROR_IMG2TXT_PROCESS"
     db.commit()
 
 @router.get("/img2txt")
-async def get_text_from_image(image: UploadFile, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-  contents = await image.read()
-  image = BytesIO(contents)
-  image = Image.open(image)
+async def get_text_from_image(
+  upload_image: UploadFile, 
+  background_tasks: BackgroundTasks, 
+  response: Response,
+  db: Session = Depends(get_db),
+  user: User = Depends(authenticate),
+  image_service: ImageService = Depends(get_image_service)
+):
+  if not user:
+    response.status_code = 403
+    return {
+      "message": "User not authenticated",
+      "error": "Unauthorized"
+    }
+  if not upload_image.content_type.startswith("image/") or upload_image.size <= 0:
+    response.status_code = 400
+    return {
+      "message": "Invalid image",
+      "error": "Bad Request"
+    }
+  contents = await upload_image.read()
+
+  image_bytes = BytesIO(contents)
+  image_pil = Image.open(image_bytes)
+  
+  image = image_service.upload(contents)
+
   query = Query(
-    user_id=1,
-    image_id=1,
+    user_id=user.id,
+    image_id=image.id,
     result="PENDING",
     content=None,
     used_token=0,
@@ -48,9 +73,11 @@ async def get_text_from_image(image: UploadFile, background_tasks: BackgroundTas
   db.commit()
   db.refresh(query)
 
-  background_tasks.add_task(create_img2txt_task, image, query.id, db)
+  background_tasks.add_task(create_img2txt_task, image_pil, query.id, db)
 
   return {
-    "message": "success",
-    "query": query
+    "message": "Success",
+    "data": {
+      "query": query
+    }
   }

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from lib.data.database import get_db
@@ -14,11 +14,13 @@ def get_all_plans(skip: int = 0, limit: int = 10, db: Session = Depends(get_db))
     return plans
 
 @router.post("/plans/", response_model=PlanSchema)
-def create_plan(plan: PlanCreate, db: Session = Depends(get_db)):
+def create_plan(plan: PlanCreate, response: Response, db: Session = Depends(get_db)):
     db_plan = Plan(**plan.model_dump())
     db.add(db_plan)
     db.commit()
     db.refresh(db_plan)
+    # Set status code to 201
+    response.status_code = 201
     return db_plan
 
 @router.get("/plans/{plan_id}", response_model=PlanSchema)

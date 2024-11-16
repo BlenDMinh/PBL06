@@ -1,6 +1,7 @@
 import logging
 import time
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.concurrency import asynccontextmanager
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,13 +15,15 @@ import api.user
 import api.auth
 from lib.data.database import create_db_and_tables
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Database
+    create_db_and_tables()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 log = logging.Logger("AIServer")
 
-# Database
-@app.on_event("startup")
-async def startup():
-  create_db_and_tables()
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
@@ -51,8 +54,7 @@ async def log_request_middleware(request: Request, call_next):
     return response
 
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
+    "*",
 ]
 
 # Register Middlewares

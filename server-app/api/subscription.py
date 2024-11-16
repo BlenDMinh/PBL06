@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from lib.data.database import get_db
@@ -13,11 +13,13 @@ def get_all_subscriptions(skip: int = 0, limit: int = 10, db: Session = Depends(
     return subscriptions
 
 @router.post("/subscriptions/", response_model=SubscriptionSchema)
-def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db)):
+def create_subscription(subscription: SubscriptionCreate, response: Response, db: Session = Depends(get_db)):
     db_subscription = Subscription(**subscription.model_dump())
     db.add(db_subscription)
     db.commit()
     db.refresh(db_subscription)
+    # Set status code to 201
+    response.status_code = 201
     return db_subscription
 
 @router.get("/subscriptions/{subscription_id}", response_model=SubscriptionSchema)

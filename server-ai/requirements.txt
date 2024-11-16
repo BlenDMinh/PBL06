@@ -11,4 +11,8 @@ transformers
 boto3
 python-dotenv
 sqlalchemy
-PyMySQL
+zetascale
+pycocotools
+bitnet
+pyjwt
+psycopg2-binary

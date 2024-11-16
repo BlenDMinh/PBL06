@@ -5,7 +5,7 @@ import logging
 from torch import nn
 from pprint import pformat
 import functools
-from transformers.modeling_outputs import ModelOutput
+from bitnet import BitLinearNew as BitLinear
 
 
 class TextualHead(nn.Module):
@@ -25,12 +25,12 @@ def create_projecton_layer(visual_projection_type,
                            textual_feature_size,
                            ):
     if visual_projection_type is None:
-        visual_projection = nn.Linear(
+        visual_projection = BitLinear(
             visual_feature_size, textual_feature_size
         )
     elif visual_projection_type == 'linearLn':
         visual_projection = nn.Sequential(
-            nn.Linear(
+            BitLinear(
                 visual_feature_size, textual_feature_size
             ),
             nn.LayerNorm(textual_feature_size),
@@ -509,7 +509,7 @@ class TransformerDecoderTextualHead(TextualHead):
     def _init_weights(module):
         r"""Initialize weights like BERT - N(0.0, 0.02), bias = 0."""
 
-        if isinstance(module, nn.Linear):
+        if isinstance(module, BitLinear):
             module.weight.data.normal_(mean=0.0, std=0.02)
         elif isinstance(module, nn.MultiheadAttention):
             module.in_proj_weight.data.normal_(mean=0.0, std=0.02)
@@ -775,7 +775,7 @@ class SmoothLabelCrossEntropyLoss(nn.Module):
 class CaptioningModel(nn.Module):
     def __init__(
         self,
-        visuals,
+        visual,
         textual,
         sos_index=1,
         eos_index=2,
@@ -791,7 +791,7 @@ class CaptioningModel(nn.Module):
         num_image_with_embedding=0,
     ):
         super().__init__()
-        self.image_encoders = visuals
+        self.image_encoder = visual
         self.textual = textual
         self.padding_idx = self.textual.padding_idx
 
@@ -839,28 +839,13 @@ class CaptioningModel(nn.Module):
     def forward(self, batch):
         result = self.forward_one(batch, return_info=False)
         return result
-    
-    def image_encoder(self, image, ensemble_method='avg'):
-        features = [encoder(image) for encoder in self.image_encoders]
-        features = [f.last_hidden_state if isinstance(f, ModelOutput) else f for f in features]
-        # Crop features to the same sequence length
-        min_len = min([f.shape[1] for f in features])
-        features = [f[:, :min_len] for f in features]
-        if ensemble_method == 'avg':
-            visual_features = torch.stack(features, dim=1).mean(dim=1)
-        else:
-            raise NotImplementedError
-        return visual_features
 
         # shape: (batch_size, channels, height, width)
     def forward_one(self, batch, return_info=False):
         # shape: (batch_size, max_caption_length, vocab_size)
         if 'image' in batch:
             if isinstance(batch['image'], (list, tuple)):
-                if len(self.image_encoders) > 1:
-                    features = [self.image_encoder(im) for im in batch['image']]
-                else:
-                    features = [self.image_encoders[0](im).last_hidden_state for im in batch['image']]
+                features = [self.image_encoder(im) for im in batch['image']]
                 if self.num_image_with_embedding:
                     features = [f + e for f, e in zip(features, self.img_temperal_embedding)]
                 if self.pooling_images is None:
@@ -870,10 +855,7 @@ class CaptioningModel(nn.Module):
                 else:
                     raise NotImplementedError
             else:
-                if len(self.image_encoders) > 1:
-                    visual_features = self.image_encoder(batch['image'])
-                else:
-                    visual_features = self.image_encoders[0](batch['image']).last_hidden_state
+                visual_features = self.image_encoder(batch['image'])
         else:
             visual_features = None
         visual_features_valid = None

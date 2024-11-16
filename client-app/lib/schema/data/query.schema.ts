@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { Image, ImageSchema } from "./image.schema";
 
 const baseQuerySchema = z.object({
   id: z.number(),
   user_id: z.number(),
   image_id: z.number(),
+  image: ImageSchema.nullish(),
   result: z.string(),
   content: z.string().nullish(),
   used_token: z.number(),

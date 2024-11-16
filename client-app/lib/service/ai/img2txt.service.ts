@@ -10,6 +10,11 @@ class Img2TxtService {
           id: 1,
           user_id: 1,
           image_id: 1,
+          image: {
+            id: 1,
+            image_url: "",
+            created_at: new Date(Date.now()).toISOString(),
+          },
           result: "API_SUCCESS",
           content: "A null image",
           used_token: 1,
