@@ -1,101 +1,189 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import { uploadImage, getImageDisplayText } from "@/lib/util/api";
+import useAuthenticateStore from "@/lib/store/authenticate.store";
+import { toast } from 'react-toastify';
 
 export default function Home() {
-  return (
-    <div className="bg-base-100 grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [imageLink, setImageLink] = useState("");
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [displayText, setDisplayText] = useState<string>("");
+  const [typedText, setTypedText] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [processCompleted, setProcessCompleted] = useState<boolean>(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const { ensuredInitialized, isAuthenticated, user } = useAuthenticateStore((state) => ({
+    ensuredInitialized: state.ensuredInitialized,
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
+  }));
+
+  useEffect(() => {
+    ensuredInitialized();
+  }, [ensuredInitialized]);
+
+  const onDrop = (acceptedFiles: File[]) => {
+    setDroppedFiles(acceptedFiles);
+    setProcessCompleted(false);
+
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => setPreviewImage(reader.result as string);
+    }
+  };
+
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.jpeg', '.jpg', '.gif', '.png', '.webp', '.bmp', '.svg'] },
+    disabled: !!previewImage,
+  });
+
+  const handleImageLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const link = e.target.value;
+    setImageLink(link);
+
+    if (!link) {
+      setLinkError(null);
+      return;
+    }
+
+    try {
+      const url = new URL(link);
+      const xhr = new XMLHttpRequest();
+      xhr.open("HEAD", url.toString(), true);
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          setLinkError(null);
+          setPreviewImage(link);
+        } else {
+          setLinkError("Please enter a valid image URL.");
+        }
+      };
+      xhr.onerror = () => {
+        setLinkError("Please enter a valid image URL.");
+      };
+      xhr.send();
+    } catch {
+      setLinkError("Please enter a valid URL.");
+    }
+  };
+
+  const handleCancelImage = () => {
+    setImageLink("");
+    setDroppedFiles([]);
+    setPreviewImage(null);
+    setLinkError(null);
+    setDisplayText("");
+    setTypedText("");
+    setProcessCompleted(false);
+  };
+
+  const handleSend = async () => {
+    setLoading(true);
+    try {
+      if (droppedFiles.length > 0) {
+        const uploadResponse = await uploadImage(droppedFiles[0]);
+        const imageId = uploadResponse.id;
+        const displayTextResponse = await getImageDisplayText(imageId);
+        setImageLink(displayTextResponse.image_url);
+        setDisplayText(" " + displayTextResponse.image_url);
+      } else if (imageLink) {
+        setDisplayText("Image link set successfully!");
+      }
+      toast.success("Image processed successfully!");
+      setProcessCompleted(true);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      setLinkError("Error uploading image");
+      toast.error("Error uploading image");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let index = 0;
+    let typingInterval: NodeJS.Timeout;
+
+    if (displayText) {
+      typingInterval = setInterval(() => {
+        setTypedText((prev) => prev + displayText.charAt(index));
+        index++;
+        if (index >= displayText.length) {
+          clearInterval(typingInterval);
+        }
+      }, 100);
+    }
+
+    return () => clearInterval(typingInterval);
+  }, [displayText]);
+
+  return (
+    <div className="min-h-screen p-8">
+      <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
+      <div className="mb-8">
+        <label htmlFor="imageLink" className="block text-sm font-medium">
+          Image Link
+        </label>
+        <input
+          type="text"
+          id="imageLink"
+          value={imageLink}
+          onChange={handleImageLinkChange}
+          className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${previewImage ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+          disabled={!!previewImage}
+        />
+        {linkError && (
+          <p className="mt-2 text-sm text-red-600">{linkError}</p>
+        )}
+      </div>
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${previewImage ? 'bg-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
+      >
+        <input {...getInputProps()} disabled={!!previewImage} />
+        <p>Drag 'n' drop some files here, or click to select files</p>
+      </div>
+      {previewImage && (
+        <div className="mt-4 flex flex-col items-center">
+          <div className="relative w-full max-w-xs">
+            <img src={previewImage} alt="Image Preview" className="object-contain w-full h-auto" />
+          </div>
+          <div className="mt-4 flex space-x-4">
+            <button
+              onClick={handleCancelImage}
+              className="px-4 py-2 bg-red-600 text-white rounded-md"
+            >
+              Cancel Image
+            </button>
+            {!processCompleted && (
+              <button
+                onClick={handleSend}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send"}
+              </button>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+      {loading && (
+        <div className="mt-4 flex justify-center">
+          <div className="loader"></div>
+        </div>
+      )}
+      {displayText && (
+        <div className="mt-8 p-4 border border-gray-300 rounded-lg">
+          <p>{typedText}</p>
+        </div>
+      )}
     </div>
   );
 }

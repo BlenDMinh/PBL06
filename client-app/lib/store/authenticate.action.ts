@@ -1,7 +1,7 @@
 "use server";
 
 import { UserSchema } from "../schema/data/user.schema";
-import { api } from "../util/api";
+import api from "../util/api"; 
 
 export async function tokenLogin(access_token: string) {
   console.log(access_token);
@@ -11,7 +11,7 @@ export async function tokenLogin(access_token: string) {
         Authorization: `Bearer ${access_token}`,
       },
     })
-    .catch((error) => {
+    .catch((error: any) => {
       return error.response;
     });
   console.log(response.data);
