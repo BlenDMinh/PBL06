@@ -10,15 +10,17 @@ const isServer = () => {
   return typeof window === "undefined";
 };
 
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export const getServerAppAxio = () => {
+  const api = axios.create({
+    baseURL: process.env.API_BASE_URL,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
-export async function axiosInitialize() {
-  await api.interceptors.request.use((config) => {
+  if (isServer()) return api;
+
+  api.interceptors.request.use((config) => {
     const access_token = localStorage.getItem("access_token");
     if (access_token) {
       config.headers.Authorization = `Bearer ${access_token}`;
@@ -26,40 +28,13 @@ export async function axiosInitialize() {
     return config;
   });
 
-  await api.interceptors.response.use(
+  api.interceptors.response.use(
     (response) => response,
     (error) => {
       console.log(error);
       return Promise.reject(error);
     }
   );
-}
 
-export const uploadImage = async (imageFile: File) => {
-  const formData = new FormData();
-  formData.append("image", imageFile);
-
-  try {
-    const response = await api.post("/images/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error uploading image:", error);
-    throw error;
-  }
+  return api;
 };
-
-export const getImageDisplayText = async (id: number) => {
-  try {
-    const response = await api.get(`/images/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching image display text:", error);
-    throw error;
-  }
-};
-
-export default api;

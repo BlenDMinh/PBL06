@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { uploadImage, getImageDisplayText } from "@/lib/util/api";
+// import { uploadImage, getImageDisplayText } from "@/lib/util/api";
 import useAuthenticateStore from "@/lib/store/authenticate.store";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
+import img2txtService from "@/lib/service/ai/img2txt.service";
 
 export default function Home() {
   const [imageLink, setImageLink] = useState("");
@@ -16,11 +17,13 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [processCompleted, setProcessCompleted] = useState<boolean>(false);
 
-  const { ensuredInitialized, isAuthenticated, user } = useAuthenticateStore((state) => ({
-    ensuredInitialized: state.ensuredInitialized,
-    isAuthenticated: state.isAuthenticated,
-    user: state.user,
-  }));
+  const { ensuredInitialized, isAuthenticated, user } = useAuthenticateStore(
+    (state) => ({
+      ensuredInitialized: state.ensuredInitialized,
+      isAuthenticated: state.isAuthenticated,
+      user: state.user,
+    })
+  );
 
   useEffect(() => {
     ensuredInitialized();
@@ -40,7 +43,9 @@ export default function Home() {
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    accept: { 'image/*': ['.jpeg', '.jpg', '.gif', '.png', '.webp', '.bmp', '.svg'] },
+    accept: {
+      "image/*": [".jpeg", ".jpg", ".gif", ".png", ".webp", ".bmp", ".svg"],
+    },
     disabled: !!previewImage,
   });
 
@@ -88,11 +93,16 @@ export default function Home() {
     setLoading(true);
     try {
       if (droppedFiles.length > 0) {
-        const uploadResponse = await uploadImage(droppedFiles[0]);
-        const imageId = uploadResponse.id;
-        const displayTextResponse = await getImageDisplayText(imageId);
-        setImageLink(displayTextResponse.image_url);
-        setDisplayText(" " + displayTextResponse.image_url);
+        const result = await img2txtService.convertImageToText(droppedFiles[0]);
+        console.log(result);
+        if (!result) {
+          setLinkError("Error uploading image");
+          toast.error("Error uploading image");
+        }
+        if (result?.image) {
+          setImageLink(result.image.image_url);
+        }
+        setDisplayText(" " + result?.content);
       } else if (imageLink) {
         setDisplayText("Image link set successfully!");
       }
@@ -136,16 +146,18 @@ export default function Home() {
           id="imageLink"
           value={imageLink}
           onChange={handleImageLinkChange}
-          className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${previewImage ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+          className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${
+            previewImage ? "bg-gray-400 cursor-not-allowed" : ""
+          }`}
           disabled={!!previewImage}
         />
-        {linkError && (
-          <p className="mt-2 text-sm text-red-600">{linkError}</p>
-        )}
+        {linkError && <p className="mt-2 text-sm text-red-600">{linkError}</p>}
       </div>
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${previewImage ? 'bg-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${
+          previewImage ? "bg-gray-400 cursor-not-allowed" : "cursor-pointer"
+        }`}
       >
         <input {...getInputProps()} disabled={!!previewImage} />
         <p>Drag 'n' drop some files here, or click to select files</p>
@@ -153,7 +165,11 @@ export default function Home() {
       {previewImage && (
         <div className="mt-4 flex flex-col items-center">
           <div className="relative w-full max-w-xs">
-            <img src={previewImage} alt="Image Preview" className="object-contain w-full h-auto" />
+            <img
+              src={previewImage}
+              alt="Image Preview"
+              className="object-contain w-full h-auto"
+            />
           </div>
           <div className="mt-4 flex space-x-4">
             <button
