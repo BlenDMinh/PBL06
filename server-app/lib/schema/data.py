@@ -107,7 +107,6 @@ class UserCreate(UserBase):
 class UserSchema(UserBase):
     id: int
     avatar_id: Optional[int]
-    queries: List[QuerySchema] = []
     account: Optional[AccountSchema]
     subscription: Optional[SubscriptionSchema]
 
