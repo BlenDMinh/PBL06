@@ -7,7 +7,7 @@ import jwt
 from lib.dependencies import authenticate
 from lib.data.database import get_db
 from lib.data.models import User, Account
-from lib.schema.auth import LoginRequest, RegisterRequest
+from lib.schema.auth import LoginRequest, RegisterRequest, ChangePasswordRequest
 
 from env import config
 from lib.util.jwt_util import make_access_token, make_refresh_token
@@ -118,4 +118,32 @@ def refresh_access_token(response: Response, refresh_token: str):
         "data": {
             "access_token": access_token
         }
+    }
+
+@router.post("/auth/change-password/")
+def change_password(change_password_request: ChangePasswordRequest, user: User = Depends(authenticate), db: Session = Depends(get_db)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    account = db.query(Account).filter(Account.user_id == user.id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    if not pwd_context.verify(change_password_request.current_password, account.password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    if len(change_password_request.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters long")
+
+    if change_password_request.current_password == change_password_request.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    hashed_new_password = pwd_context.hash(change_password_request.new_password)
+    account.password = hashed_new_password
+    db.commit()
+    db.refresh(account)
+
+    return {
+        "message": "Password changed successfully"
     }
