@@ -1,3 +1,4 @@
+import random
 from lib.git.generativeimage2text.inference import get_image_transform
 from lib.git.generativeimage2text.model import get_git_model
 from lib.git.generativeimage2text.common import load_from_yaml_file, init_logging
@@ -40,6 +41,20 @@ def prepare_model():
 
 model = prepare_model()
 
+# Prepare Paraphrase model
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+# Load pre-trained T5 model
+para_tokenizer = AutoTokenizer.from_pretrained("humarin/chatgpt_paraphraser_on_T5_base")
+para_model = AutoModelForSeq2SeqLM.from_pretrained("humarin/chatgpt_paraphraser_on_T5_base")
+
+def paraphrase_caption(caption, num_return_sequences=5):
+    """Generate paraphrased captions."""
+    input_text = f"paraphrase: {caption} </s>"
+    inputs = para_tokenizer.encode(input_text, return_tensors="pt", max_length=128, truncation=True)
+    outputs = para_model.generate(inputs, max_length=128, num_return_sequences=num_return_sequences, num_beams=5)
+    return [para_tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
+
 def infer(image_path, prefix=''):
     if isinstance(image_path, str):
         image_path = [image_path]
@@ -71,6 +86,8 @@ def infer_pil(img, prefix='', max_text_len=1024):
             'prefix': torch.tensor(input_ids).unsqueeze(0).cuda(),
         })
     cap = tokenizer.decode(result['predictions'][0].tolist(), skip_special_tokens=True)
+    cap = paraphrase_caption(cap, num_return_sequences=5)
+    cap = cap[random.randint(0, len(cap) - 1)]
     logger.info('output: {}'.format(cap))
 
     return cap
