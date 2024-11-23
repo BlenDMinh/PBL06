@@ -1,10 +1,10 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, Response, logger
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import jwt
 
-from lib.dependencies import authenticate
+from lib.util.auth import authenticate
 from lib.data.database import get_db
 from lib.data.models import User, Account
 from lib.schema.auth import LoginRequest, RegisterRequest, ChangePasswordRequest
@@ -16,14 +16,7 @@ from lib.util.jwt_util import make_access_token, make_refresh_token
 router = APIRouter()
 
 @router.post("/auth/login/")
-def login(login_request: LoginRequest = None, user: User = Depends(authenticate), db: Session = Depends(get_db)):
-    if user:
-        return {
-            "message": "User already logged in",
-            "data": {
-                "user": user
-            }
-        }
+def login(login_request: LoginRequest = None, db: Session = Depends(get_db)):
     if not login_request or not login_request.email or not login_request.password:
         raise HTTPException(status_code=400, detail="Email and password are required")
     account = db.query(Account).join(User).filter(User.email == login_request.email).first()
