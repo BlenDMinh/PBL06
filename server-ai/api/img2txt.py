@@ -8,7 +8,7 @@ from PIL import Image
 from sqlalchemy.orm import Session
 from lib.data.database import get_db
 from lib.data.models import Query, User
-from lib.dependencies import authenticate
+from lib.util.auth import authenticate
 from lib.service.image_service import ImageService, get_image_service
 
 router = APIRouter()
@@ -27,6 +27,7 @@ async def create_img2txt_task(image: Image, query_id: int, db: Session):
     db.refresh(query)
     logger.debug("Task completed. Query ID: %s", query_id)
   except Exception as e:
+    db.rollback()
     logger.error("Error while processing image to text. Query ID: %s", query_id)
     logger.error(e)
     query.result = "ERROR_IMG2TXT_PROCESS"

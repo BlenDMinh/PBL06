@@ -5,7 +5,7 @@ from typing import List
 from lib.data.database import get_db
 from lib.data.models import Query, User
 from lib.schema.data import QueryCreate, QuerySchema
-from lib.dependencies import authenticate
+from lib.util.auth import authenticate
 
 router = APIRouter()
 
