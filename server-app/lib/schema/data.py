@@ -39,7 +39,6 @@ class ImageSchema(ImageBase):
 
 class QueryBase(BaseModel):
     user_id: int
-    image_id: int
     result: str = "PENDING"
     content: Optional[str]
     used_token: int
@@ -51,6 +50,7 @@ class QueryCreate(QueryBase):
 
 class QuerySchema(QueryBase):
     id: int
+    image: Optional[ImageSchema] = None
     created_at: datetime
 
     model_config = ConfigDict(
