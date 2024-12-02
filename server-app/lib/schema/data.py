@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import datetime
 
 
@@ -96,7 +96,7 @@ class PlanSchema(PlanBase):
 
 
 class UserBase(BaseModel):
-    email: str
+    email: EmailStr
     username: Optional[str]
 
 

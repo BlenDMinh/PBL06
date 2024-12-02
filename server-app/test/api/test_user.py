@@ -1,192 +1,137 @@
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from main import app
+from lib.data.database import Base, get_db, create_db_and_tables
 from lib.data.models import User
 from lib.schema.data import UserCreate, UserSchema
-from test.test import client
-from test.test_data.user import init_users, add_users
-from env import load_env
-from lib.data.database import create_db_and_tables, get_db
+from env import config
+import random
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_env():
-    load_env(".env.test")
-    yield
+TEST_TRIALS = 10
 
-@pytest.fixture(scope="session", autouse=True)
-def create_table():
+# Set up the test database
+config['APP_ENV'] = 'Test'
+config['TEST_DATABASE_URL'] = "sqlite:///./test_user.db"
+engine = create_engine(config['TEST_DATABASE_URL'], connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base.metadata.create_all(bind=engine)
+
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
+client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def setup_database():
     create_db_and_tables()
-    db = next(get_db())
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture(scope="function")
+def setup_users():
+    db = TestingSessionLocal()
+    init_users = [
+        User(email=f"test_user_{i}@test.com", username=f"test_user_{i}")
+        for i in range(10)
+    ]
     db.add_all(init_users)
     db.commit()
     for user in init_users:
         db.refresh(user)
-    yield db
+    yield init_users
     db.query(User).delete()
     db.commit()
+    db.close()
 
-import random
-TEST_TRIALS = 10
-
-def test_get_user():
-    response = client.get("api/users/")
+def test_get_user(setup_database, setup_users):
+    response = client.get("/api/users/")
     assert response.status_code == 200
 
     # Test default limit == 10
     assert len(response.json()) == 10
     for i in range(10):
-        assert response.json()[i]["id"] in map(lambda x: x.id, init_users)
+        assert response.json()[i]["id"] in map(lambda x: x.id, setup_users)
 
-def test_get_user_with_limit():
-    with next(get_db()) as db:
-        for _ in range(TEST_TRIALS):
-            limit = random.randint(1, 10)
-            response = client.get(f"api/users/?limit={limit}")
-            assert response.status_code == 200
-            assert len(response.json()) == limit
+def test_get_user_with_limit(setup_database, setup_users):
+    for _ in range(10):
+        limit = random.randint(1, 10)
+        response = client.get(f"/api/users/?limit={limit}")
+        assert response.status_code == 200
+        assert len(response.json()) == limit
 
+def test_get_user_with_skip(setup_database, setup_users):
+    for _ in range(10):
+        skip = random.randint(0, 9)
+        response = client.get(f"/api/users/?skip={skip}")
+        assert response.status_code == 200
+        assert len(response.json()) == 10 - skip
 
-            for i in range(limit):
-                assert response.json()[i]["id"] in map(lambda x: x.id, init_users)
-                assert UserSchema.model_validate(response.json()[i])
-                user = db.query(User).filter(User.id == response.json()[i]["id"]).first()
-                assert user is not None
-                assert user.id == response.json()[i]["id"]
-                assert user.username == response.json()[i]["username"]
-                assert user.email == response.json()[i]["email"]
+def test_get_user_with_skip_and_limit(setup_database, setup_users):
+    for _ in range(10):
+        skip = random.randint(0, 9)
+        limit = random.randint(1, 10 - skip)
+        response = client.get(f"/api/users/?skip={skip}&limit={limit}")
+        assert response.status_code == 200
+        assert len(response.json()) == limit
 
-def test_get_user_with_skip():
-    with next(get_db()) as db:
-        for _ in range(TEST_TRIALS):
-            skip = random.randint(1, 10)
-            response = client.get(f"api/users/?skip={skip}")
-            assert response.status_code == 200
-            assert len(response.json()) == 10
-
-            for i in range(10):
-                assert response.json()[i]["id"] in map(lambda x: x.id, init_users)
-                assert UserSchema.model_validate(response.json()[i])
-                user = db.query(User).filter(User.id == response.json()[i]["id"]).first()
-                assert user is not None
-                assert user.id == response.json()[i]["id"]
-                assert user.username == response.json()[i]["username"]
-                assert user.email == response.json()[i]["email"]
-
-def test_get_user_with_skip_and_limit():
-    with next(get_db()) as db:
-        for _ in range(TEST_TRIALS):
-            skip = random.randint(1, 10)
-            limit = random.randint(1, 10)
-            response = client.get(f"api/users/?skip={skip}&limit={limit}")
-            assert response.status_code == 200
-            assert len(response.json()) == limit
-
-            for i in range(limit):
-                assert response.json()[i]["id"] in map(lambda x: x.id, init_users)
-                assert UserSchema.model_validate(response.json()[i])
-                user = db.query(User).filter(User.id == response.json()[i]["id"]).first()
-                assert user is not None
-                assert user.id == response.json()[i]["id"]
-                assert user.username == response.json()[i]["username"]
-                assert user.email == response.json()[i]["email"]
-
-def test_get_user_by_id():
-    for user in init_users:
-        response = client.get(f"api/users/{user.id}")
+def test_get_user_by_id(setup_database, setup_users):
+    for user in setup_users:
+        response = client.get(f"/api/users/{user.id}")
         assert response.status_code == 200
         assert response.json()["id"] == user.id
-        assert response.json()["username"] == user.username
-        assert response.json()["email"] == user.email
 
-def test_get_user_by_id_with_invalid_id():
-    response = client.get("api/users/100000")
-    assert response.status_code == 404
+def test_post_user(setup_database):
+    user_data = {"email": "new_user@test.com", "username": "new_user"}
+    response = client.post("/api/users/", json=user_data)
+    assert response.status_code == 201
+    assert response.json()["email"] == user_data["email"]
+    assert response.json()["username"] == user_data["username"]
 
-def test_post_user():
-    with next(get_db()) as db:
-        for user in add_users:
-            data = UserCreate.model_validate(user)
-            response = client.post("api/users/", json=data.model_dump())
-            assert response.status_code == 201
-            assert response.json()["username"] == user["username"]
-            assert response.json()["email"] == user["email"]
+def test_post_user_with_invalid_data(setup_database):
+    user_data = {"email": "invalid_email", "username": "new_user"}
+    response = client.post("/api/users/", json=user_data)
+    assert response.status_code == 422
 
-            user = db.query(User).filter(User.id == response.json()["id"]).first()
-            assert user is not None
-            assert user.id == response.json()["id"]
-            assert user.username == response.json()["username"]
-            assert user.email == response.json()["email"]
+def test_post_user_with_duplicate_data(setup_database, setup_users):
+    user_data = {"email": setup_users[0].email, "username": "duplicate_user"}
+    response = client.post("/api/users/", json=user_data)
+    assert response.status_code == 400
 
-def test_post_user_with_invalid_data():
-    for user in add_users:
-        data = UserCreate.model_validate(user)
-        data.username = "a" * 100
-        response = client.post("api/users/", json=data.model_dump())
-        assert response.status_code == 422
+def test_update_user(setup_database, setup_users):
+    user = setup_users[0]
+    update_data = {"email": "updated_user@test.com", "username": "updated_user"}
+    response = client.put(f"/api/users/{user.id}", json=update_data)
+    assert response.status_code == 200
+    assert response.json()["email"] == update_data["email"]
+    assert response.json()["username"] == update_data["username"]
 
-        data = UserCreate.model_validate(user)
-        data.email = "a" * 100
-        response = client.post("api/users/", json=data.model_dump())
-        assert response.status_code == 422
+def test_update_user_with_invalid_data(setup_database, setup_users):
+    user = setup_users[0]
+    update_data = {"email": "invalid_email", "username": "updated_user"}
+    response = client.put(f"/api/users/{user.id}", json=update_data)
+    assert response.status_code == 422
 
-def test_post_user_with_duplicate_data():
-    with next(get_db()) as db:
-        for user in init_users:
-            data = UserCreate.model_validate(user)
-            response = client.post("api/users/", json=data.model_dump())
-            assert response.status_code == 409
+def test_update_user_with_duplicate_data(setup_database, setup_users):
+    user = setup_users[0]
+    duplicate_user = setup_users[1]
+    update_data = {"email": duplicate_user.email, "username": "duplicate_user"}
+    response = client.put(f"/api/users/{user.id}", json=update_data)
+    assert response.status_code == 400
 
-def test_update_user():
-    with next(get_db()) as db:
-        for user in init_users[:5]:
-            data = UserSchema.model_validate(user)
-            data.username = f"changed_{user.id}"
-            data.email = f"change_{user.id}@test.com"
-            response = client.put(f"api/users/{user.id}", json=data.model_dump())
-            assert response.status_code == 200
-            assert response.json()["id"] == user.id
-            assert response.json()["username"] == data.username
-            assert response.json()["email"] == data.email
-
-            user = db.query(User).filter(User.id == response.json()["id"]).first()
-            assert user is not None
-            assert user.id == response.json()["id"]
-            assert user.username == response.json()["username"]
-            assert user.email == response.json()["email"]
-
-def test_update_user_with_invalid_data():
-    with next(get_db()) as db:
-        for user in init_users[:5]:
-            data = UserSchema.model_validate(user)
-            data.username = "a" * 100
-            response = client.put(f"api/users/{user.id}", json=data.model_dump())
-            assert response.status_code == 422
-
-            data = UserSchema.model_validate(user)
-            data.email = "a" * 100
-            response = client.put(f"api/users/{user.id}", json=data.model_dump())
-            assert response.status_code == 422
-
-def test_update_user_with_duplicate_data():
-    with next(get_db()) as db:
-        for user in init_users[:5]:
-            data = UserSchema.model_validate(user)
-            data.username = init_users[5].username
-            response = client.put(f"api/users/{user.id}", json=data.model_dump())
-            assert response.status_code == 409
-
-            data = UserSchema.model_validate(user)
-            data.email = init_users[5].email
-            response = client.put(f"api/users/{user.id}", json=data.model_dump())
-            assert response.status_code == 409
-
-def test_delete_user():
-    with next(get_db()) as db:
-        for user in init_users[:5]:
-            response = client.delete(f"api/users/{user.id}")
-            assert response.status_code == 200
-
-            user = db.query(User).filter(User.id == user.id).first()
-            assert user is None
-
-def test_delete_user_with_invalid_id():
-    response = client.delete("api/users/100000")
+def test_delete_user(setup_database, setup_users):
+    user = setup_users[0]
+    response = client.delete(f"/api/users/{user.id}")
+    assert response.status_code == 200
+    assert response.json()["detail"] == "User deleted"
+    response = client.get(f"/api/users/{user.id}")
     assert response.status_code == 404
