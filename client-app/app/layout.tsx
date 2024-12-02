@@ -4,7 +4,6 @@ import "./globals.css";
 import useAuthenticateStore from "@/lib/store/authenticate.store";
 import Sidebar from "@/components/layout/sidebar";
 import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

@@ -8,7 +8,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { serverSideLogin } from "./action";
 import { loginSchema } from "@/lib/validation/validation";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
+import Loader from "@/components/layout/loader";
+import { useState } from "react";
+import { ApiError } from "@/lib/errors/ApiError";
 
 type LoginFormInputs = {
   email: string;
@@ -16,30 +19,25 @@ type LoginFormInputs = {
 };
 
 export default function LoginPage() {
+  const [loading, setLoading] = useState(false);
   const authenticationStore = useAuthenticateStore((state) => state);
   const router = useRouter();
 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginFormInputs) => {
+    setLoading(true);
     try {
       const response = await serverSideLogin(data.email, data.password);
       if (!response.data) {
-        toast.error("An error occurred", {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
+        toast.error("An error occurred");
         return;
       }
       const user = response.data.user;
@@ -48,32 +46,28 @@ export default function LoginPage() {
       authenticationStore.saveLoginToken(accessToken, refreshToken);
       authenticationStore.setUser(user);
       authenticationStore.setIsAuthenticated(true);
-      toast.success("Login successful!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      toast.success("Login successful!");
       router.push("/");
-    } catch (error) {
-      toast.error("Login failed", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      console.error("Login error:", error);
+    } catch (error: any) {
+      console.log(error);
+      const errorMessage = error.message || "An unexpected error occurred";
+
+      if (errorMessage.toLowerCase().includes("invalid email")) {
+        setError("email", { type: "manual", message: errorMessage });
+      } else if (errorMessage.toLowerCase().includes("invalid password")) {
+        setError("password", { type: "manual", message: errorMessage });
+      } else {
+        toast.error(errorMessage);
+        console.error("Login error:", error);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="grid items-center justify-items-center min-h-screen p-4 sm:p-8 pb-20 gap-8 sm:gap-16 font-[family-name:var(--font-geist-sans)]">
+      {loading && <Loader />}
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-md bg-base-200 border-2 border-primary shadow-xl rounded-3xl flex flex-col p-6 sm:p-8 gap-6 sm:gap-10 items-center"
@@ -87,7 +81,9 @@ export default function LoginPage() {
               {...register("email")}
               className="input input-bordered w-full"
             />
-            {errors.email && <span className="text-red-500 text-sm">{errors.email.message}</span>}
+            {errors.email && (
+              <span className="text-red-500 text-sm">{errors.email.message}</span>
+            )}
           </div>
           <div className="w-full flex flex-col items-start gap-2">
             <input
@@ -96,17 +92,16 @@ export default function LoginPage() {
               {...register("password")}
               className="input input-bordered w-full"
             />
-            {errors.password && <span className="text-red-500 text-sm">{errors.password.message}</span>}
+            {errors.password && (
+              <span className="text-red-500 text-sm">{errors.password.message}</span>
+            )}
           </div>
-          <button className="btn btn-outline w-full">
-            <span>Login</span>
+          <button className="btn btn-outline w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </button>
           <div className="text-center">
-            <span>Doesn't have an account? </span>
-            <Link
-              href="/auth/register"
-              className="transition-all text-info hover:text-base-content"
-            >
+            <span>Don't have an account? </span>
+            <Link href="/auth/register" className="transition-all text-info hover:text-base-content">
               Register
             </Link>
           </div>

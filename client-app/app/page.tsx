@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-// import { uploadImage, getImageDisplayText } from "@/lib/util/api";
 import useAuthenticateStore from "@/lib/store/authenticate.store";
 import { toast } from "react-toastify";
-import img2txtService from "@/lib/service/ai/img2txt.service";
+import { convertImageToText } from "./actions";
+import Image from "next/image";
 
 export default function Home() {
   const [imageLink, setImageLink] = useState("");
@@ -92,22 +92,37 @@ export default function Home() {
   const handleSend = async () => {
     setLoading(true);
     try {
+      let fileToSend: File | null = null;
+
       if (droppedFiles.length > 0) {
-        const result = await img2txtService.convertImageToText(droppedFiles[0]);
-        console.log(result);
-        if (!result) {
-          setLinkError("Error uploading image");
-          toast.error("Error uploading image");
-        }
-        if (result?.image) {
-          setImageLink(result.image.image_url);
-        }
-        setDisplayText(" " + result?.content);
+        fileToSend = droppedFiles[0];
       } else if (imageLink) {
-        setDisplayText("Image link set successfully!");
+        const response = await fetch(imageLink);
+        const blob = await response.blob();
+        fileToSend = new File([blob], "image.jpg", { type: blob.type });
       }
-      toast.success("Image processed successfully!");
-      setProcessCompleted(true);
+
+      if (fileToSend) {
+        const formData = new FormData();
+        formData.append("upload_image", fileToSend);
+        const access_token = localStorage.getItem('access_token');
+        if (!access_token) {
+          toast.error("No access token found");
+          return;
+        }
+        const queryResult = await convertImageToText(formData, access_token);
+        if (!queryResult) {
+          setLinkError("Error processing image 1");
+          toast.error("Error processing image 1");
+        } else {
+          setDisplayText(" " + queryResult.content);
+          toast.success("Image processed successfully!");
+          setProcessCompleted(true);
+        }
+      } else {
+        setLinkError("No image to process");
+        toast.error("No image to process");
+      }
     } catch (error) {
       console.error("Error uploading image:", error);
       setLinkError("Error uploading image");
@@ -146,29 +161,28 @@ export default function Home() {
           id="imageLink"
           value={imageLink}
           onChange={handleImageLinkChange}
-          className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${
-            previewImage ? "bg-gray-400 cursor-not-allowed" : ""
-          }`}
+          className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${previewImage ? "bg-gray-400 cursor-not-allowed" : ""
+            }`}
           disabled={!!previewImage}
         />
         {linkError && <p className="mt-2 text-sm text-red-600">{linkError}</p>}
       </div>
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${
-          previewImage ? "bg-gray-400 cursor-not-allowed" : "cursor-pointer"
-        }`}
+        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${previewImage ? "bg-gray-400 cursor-not-allowed" : "cursor-pointer"
+          }`}
       >
         <input {...getInputProps()} disabled={!!previewImage} />
         <p>Drag 'n' drop some files here, or click to select files</p>
       </div>
       {previewImage && (
         <div className="mt-4 flex flex-col items-center">
-          <div className="relative w-full max-w-xs">
-            <img
+          <div className="relative w-full max-w-xs h-64"> {/* Added h-64 to set height */}
+            <Image
               src={previewImage}
               alt="Image Preview"
-              className="object-contain w-full h-auto"
+              fill
+              style={{ objectFit: 'contain' }} // Ensure the image scales properly
             />
           </div>
           <div className="mt-4 flex space-x-4">

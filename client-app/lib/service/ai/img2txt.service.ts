@@ -1,39 +1,31 @@
+import { getAIServerAxio } from "@/lib/util/api";
 import { Query, QuerySchema } from "@/lib/schema/data/query.schema";
 import WrapperResponse from "@/lib/schema/wrapper.schema";
 
 class Img2TxtService {
-  async convertImageToText(image: any): Promise<Query | null> {
-    const mockResponse = {
-      message: "OK",
-      data: {
-        query: {
-          id: 1,
-          user_id: 1,
-          image_id: 1,
-          image: {
-            id: 1,
-            image_url: "",
-            created_at: new Date(Date.now()).toISOString(),
-          },
-          result: "API_SUCCESS",
-          content: "A null image",
-          used_token: 1,
-          created_at: new Date(Date.now()).toISOString(),
-        },
-      },
-    };
+  async convertImageToText(image: File): Promise<Query | null> {
+    try {
+      const aiServer = getAIServerAxio();
+      const formData = new FormData();
+      formData.append("upload_image", image);
 
-    const response = WrapperResponse.parse(mockResponse);
-    if (response.data) {
-      try {
-        const query = QuerySchema.parse(response.data.query);
+      const response = await aiServer.post("/img2txt", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const wrapper = WrapperResponse.parse(response.data);
+      if (wrapper.data) {
+        const query = QuerySchema.parse(wrapper.data.query);
         return query;
-      } catch (e) {
-        console.log(e);
-        return null;
       }
+
+      return null;
+    } catch (e) {
+      console.error(e);
+      return null;
     }
-    return null;
   }
 }
 

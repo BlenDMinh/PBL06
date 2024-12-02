@@ -5,7 +5,6 @@ import { UserSchema } from "../schema/data/user.schema";
 import { getServerAppAxio } from "../util/api";
 
 export async function tokenLogin(access_token: string) {
-  console.log(access_token);
   const api = getServerAppAxio();
   const response = await api
     .get("/auth/me", {
