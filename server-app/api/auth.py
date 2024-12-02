@@ -1,28 +1,22 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, logger
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import jwt
 
-from lib.dependencies import authenticate
+from lib.util.auth import authenticate
 from lib.data.database import get_db
 from lib.data.models import User, Account
-from lib.schema.auth import LoginRequest, RegisterRequest
+from lib.schema.auth import LoginRequest, RegisterRequest, ChangePasswordRequest
 
 from env import config
+from lib.util.jwt_util import make_access_token, make_refresh_token
 
 
 router = APIRouter()
 
 @router.post("/auth/login/")
-def login(login_request: LoginRequest = None, user: User = Depends(authenticate), db: Session = Depends(get_db)):
-    if user:
-        return {
-            "message": "User already logged in",
-            "data": {
-                "user": user
-            }
-        }
+def login(login_request: LoginRequest = None, db: Session = Depends(get_db)):
     if not login_request or not login_request.email or not login_request.password:
         raise HTTPException(status_code=400, detail="Email and password are required")
     account = db.query(Account).join(User).filter(User.email == login_request.email).first()
@@ -32,30 +26,10 @@ def login(login_request: LoginRequest = None, user: User = Depends(authenticate)
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     if not pwd_context.verify(login_request.password, account.password):
         raise HTTPException(status_code=401, detail="Invalid password")
-    now = datetime.datetime.now(datetime.timezone.utc)
-    iat = datetime.datetime.now(datetime.timezone.utc).timestamp()
-    refresh_exp = (now + datetime.timedelta(days=float(config["REFRESH_TOKEN_EXPI"]))).timestamp()
-    access_exp = (now + datetime.timedelta(minutes=float(config["ACCESS_TOKEN_EXPI"]))).timestamp()
-    refresh_token = jwt.encode(
-        {
-            "sub": account.user.id,
-            "iss": "api",
-            "iat": iat,
-            "exp": refresh_exp
-        }, 
-        config["JWT_SECRET"], 
-        algorithm="HS256",
-    )
-    access_token = jwt.encode(
-        {
-            "sub": account.user.id,
-            "iss": "api",
-            "iat": iat,
-            "exp": access_exp
-        }, 
-        config["JWT_SECRET"], 
-        algorithm="HS256",
-    )
+    
+    refresh_token = make_refresh_token(account.user.id)
+    access_token = make_access_token(refresh_token)
+
     return {
         "message": "Login successful",
         "data": {
@@ -106,4 +80,63 @@ def register(register_request: RegisterRequest, db: Session = Depends(get_db)):
         "data": {
             "user": new_user
         }
+    }
+
+@router.get("/auth/me")
+def get_me(response: Response, user: User = Depends(authenticate)):
+    if user:
+        return {
+            "message": "User already logged in",
+            "data": {
+                "user": user
+            }
+        }
+    response.status_code = 403
+    return {
+        "error": "Unauthorized",
+        "message": "Access token is invalid"
+    }
+
+@router.post("/auth/refresh")
+def refresh_access_token(response: Response, refresh_token: str):
+    access_token = make_access_token(refresh_token)
+    if not access_token:
+        response.status_code = 400
+        return {
+            "error": "Bad request",
+            "message": "Refresh token is invalid"
+        }
+    return {
+        "message": "Successfully refresh access token",
+        "data": {
+            "access_token": access_token
+        }
+    }
+
+@router.post("/auth/change-password/")
+def change_password(change_password_request: ChangePasswordRequest, user: User = Depends(authenticate), db: Session = Depends(get_db)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    account = db.query(Account).filter(Account.user_id == user.id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    if not pwd_context.verify(change_password_request.current_password, account.password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    if len(change_password_request.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters long")
+
+    if change_password_request.current_password == change_password_request.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    hashed_new_password = pwd_context.hash(change_password_request.new_password)
+    account.password = hashed_new_password
+    db.commit()
+    db.refresh(account)
+
+    return {
+        "message": "Password changed successfully"
     }

@@ -354,3 +354,7 @@ build/
 output/
 
 annotations/
+dataset
+git_trainer.py
+loss.py
+plot.py

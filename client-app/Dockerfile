@@ -20,7 +20,7 @@ RUN pnpm install ts-node
 # COPY ../.env.docker.local /app/.env
 
 # Apply and seeding database
-RUN npx prisma generate
+# RUN npx prisma generate
 
 # Build the application
 RUN pnpm build
