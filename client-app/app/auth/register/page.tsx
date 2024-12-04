@@ -8,6 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { serverSideRegister } from "./action";
 import { registerSchema } from "@/lib/validation/validation";
 import { toast } from 'react-toastify';
+import Loader from "@/components/layout/loader";
+import { useState } from "react";
+import { ApiError } from "@/lib/errors/ApiError";
 
 type RegisterFormInputs = {
   email: string;
@@ -17,57 +20,50 @@ type RegisterFormInputs = {
 };
 
 export default function RegisterPage() {
+  const [loading, setLoading] = useState(false);
   const authenticationStore = useAuthenticateStore((state) => state);
   const router = useRouter();
+
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<RegisterFormInputs>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = async (data: RegisterFormInputs) => {
+    setLoading(true);
     try {
       const response = await serverSideRegister(data.email, data.password, data.username);
       if (!response.data) {
-        toast.error("An error occurred", {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
+        toast.error("An error occurred during registration");
         return;
       }
-      toast.success("Registration successful!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      toast.success("Registration successful!");
       router.push("/auth/login");
-    } catch (error) {
-      toast.error("Registration failed", {
-        position: "top-right",
-        autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+    } catch (error: any) {
       console.error("Registration error:", error);
+      const errorMessage = error.message || "An unexpected error occurred";
+
+      if (errorMessage.toLowerCase().includes("email")) {
+        setError("email", { type: "manual", message: errorMessage });
+      } else if (errorMessage.toLowerCase().includes("password")) {
+        setError("password", { type: "manual", message: errorMessage });
+      } else if (errorMessage.toLowerCase().includes("username")) {
+        setError("username", { type: "manual", message: errorMessage });
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="grid items-center justify-items-center min-h-screen p-4 sm:p-8 pb-20 gap-8 sm:gap-16 font-[family-name:var(--font-geist-sans)]">
+      {loading && <Loader />}
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-md bg-base-200 border-2 border-primary shadow-xl rounded-3xl flex flex-col p-6 sm:p-8 gap-6 sm:gap-10 items-center"
