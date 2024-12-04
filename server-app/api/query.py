@@ -1,15 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
+from typing import List
 
 from lib.data.database import get_db
-from lib.data.models import Query
+from lib.data.models import Query, User
 from lib.schema.data import QueryCreate, QuerySchema
+from lib.util.auth import authenticate
 
 router = APIRouter()
 
-@router.get("/queries/", response_model=list[QuerySchema])
-def get_all_queries(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    queries = db.query(Query).offset(skip).limit(limit).all()
+@router.get("/queries/", response_model=List[QuerySchema])
+def get_user_queries(skip: int = 0, limit: int = 10, user: User = Depends(authenticate), db: Session = Depends(get_db)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    queries = db.query(Query).filter(Query.user_id == user.id).offset(skip).limit(limit).all()
+    if not queries:
+        raise HTTPException(status_code=404, detail="No queries found for this user")
     return queries
 
 @router.post("/queries/", response_model=QuerySchema)
