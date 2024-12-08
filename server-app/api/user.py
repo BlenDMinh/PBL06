@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 
 from lib.data.database import get_db
 from lib.data.models import User
@@ -14,13 +15,18 @@ def get_all_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db))
 
 @router.post("/users/", response_model=UserSchema)
 def create_user(user: UserCreate, response: Response, db: Session = Depends(get_db)):
-    db_user = User(**user.model_dump())
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    # Set status code to 201
-    response.status_code = 201
-    return db_user
+    try:
+        db_user = User(**user.dict())
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        # Set status code to 201
+        response.status_code = 201
+        return db_user
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/users/{user_id}", response_model=UserSchema)
 def read_user(user_id: int, db: Session = Depends(get_db)):
@@ -34,7 +40,12 @@ def update_user(user_id: int, user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    for key, value in user.model_dump().items():
+    
+    # Check for duplicate email
+    if db.query(User).filter(User.email == user.email, User.id != user_id).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    for key, value in user.dict().items():
         setattr(db_user, key, value)
     db.commit()
     db.refresh(db_user)

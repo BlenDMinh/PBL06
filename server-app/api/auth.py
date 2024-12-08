@@ -6,7 +6,8 @@ import jwt
 
 from lib.util.auth import authenticate
 from lib.data.database import get_db
-from lib.data.models import User, Account
+from lib.data.models import User, Account, Subscription
+from lib.schema.data import SubscriptionCreate
 from lib.schema.auth import LoginRequest, RegisterRequest, ChangePasswordRequest
 
 from env import config
@@ -45,10 +46,6 @@ def register(register_request: RegisterRequest, db: Session = Depends(get_db)):
     if not register_request.email or not register_request.password:
         raise HTTPException(status_code=400, detail="Email and password are required")
     
-    # Check if email is valid (basic validation)
-    if "@" not in register_request.email or "." not in register_request.email:
-        raise HTTPException(status_code=400, detail="Invalid email format")
-    
     # Check if password meets basic security requirements (e.g., length)
     if len(register_request.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
@@ -58,9 +55,9 @@ def register(register_request: RegisterRequest, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Check if username are provided
+    # Check if username is provided
     if not register_request.username:
-        raise HTTPException(status_code=400, detail="Username are required")
+        raise HTTPException(status_code=400, detail="Username is required")
     
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     hashed_password = pwd_context.hash(register_request.password)
@@ -74,21 +71,32 @@ def register(register_request: RegisterRequest, db: Session = Depends(get_db)):
     db.add(new_account)
     db.commit()
     db.refresh(new_account)
+    
+    # Subscribe the user to the plan with ID 0
+    subscription = SubscriptionCreate(user_id=new_user.id, plan_id=0)
+    db_subscription = Subscription(**subscription.model_dump())
+    db.add(db_subscription)
+    db.commit()
+    db.refresh(db_subscription)
+    
     db.refresh(new_user)
     return {
         "message": "Registration successful",
         "data": {
-            "user": new_user
+            "user": new_user,
+            "subscription": db_subscription
         }
     }
 
 @router.get("/auth/me")
-def get_me(response: Response, user: User = Depends(authenticate)):
+def get_me(response: Response, user: User = Depends(authenticate), db: Session = Depends(get_db)):
     if user:
+        subscription = db.query(Subscription).filter(Subscription.user_id == user.id).first()
         return {
             "message": "User already logged in",
             "data": {
-                "user": user
+                "user": user,
+                "subscription": subscription
             }
         }
     response.status_code = 403
