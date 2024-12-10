@@ -3,7 +3,7 @@ python-multipart
 python-dotenv
 sqlalchemy
 PyMySQL
-pyjwt
+pyjwt==2.9.0
 passlib
 bcrypt
 regex
