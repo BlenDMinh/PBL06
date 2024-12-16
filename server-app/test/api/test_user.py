@@ -1,39 +1,15 @@
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from main import app
-from lib.data.database import Base, get_db, create_db_and_tables
+from lib.data.database import Base
 from lib.data.models import User
-from lib.schema.data import UserCreate, UserSchema
-from env import config
 import random
+from test.test import TestingSessionLocal, engine, client
 
 TEST_TRIALS = 10
 
-# Set up the test database
-config['APP_ENV'] = 'Test'
-config['TEST_DATABASE_URL'] = "sqlite:///./test_user.db"
-engine = create_engine(config['TEST_DATABASE_URL'], connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base.metadata.create_all(bind=engine)
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-
-client = TestClient(app)
-
 @pytest.fixture(scope="module")
 def setup_database():
-    create_db_and_tables()
+    # Ensure that the database tables are created
+    Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
 
@@ -42,7 +18,7 @@ def setup_users():
     db = TestingSessionLocal()
     init_users = [
         User(email=f"test_user_{i}@test.com", username=f"test_user_{i}")
-        for i in range(10)
+        for i in range(TEST_TRIALS)
     ]
     db.add_all(init_users)
     db.commit()
@@ -57,29 +33,29 @@ def test_get_user(setup_database, setup_users):
     response = client.get("/api/users/")
     assert response.status_code == 200
 
-    # Test default limit == 10
-    assert len(response.json()) == 10
-    for i in range(10):
+    # Test default limit == TEST_TRIALS
+    assert len(response.json()) == TEST_TRIALS
+    for i in range(TEST_TRIALS):
         assert response.json()[i]["id"] in map(lambda x: x.id, setup_users)
 
 def test_get_user_with_limit(setup_database, setup_users):
-    for _ in range(10):
-        limit = random.randint(1, 10)
+    for _ in range(TEST_TRIALS):
+        limit = random.randint(1, TEST_TRIALS)
         response = client.get(f"/api/users/?limit={limit}")
         assert response.status_code == 200
         assert len(response.json()) == limit
 
 def test_get_user_with_skip(setup_database, setup_users):
-    for _ in range(10):
+    for _ in range(TEST_TRIALS):
         skip = random.randint(0, 9)
         response = client.get(f"/api/users/?skip={skip}")
         assert response.status_code == 200
-        assert len(response.json()) == 10 - skip
+        assert len(response.json()) == TEST_TRIALS - skip
 
 def test_get_user_with_skip_and_limit(setup_database, setup_users):
-    for _ in range(10):
+    for _ in range(TEST_TRIALS):
         skip = random.randint(0, 9)
-        limit = random.randint(1, 10 - skip)
+        limit = random.randint(1, TEST_TRIALS - skip)
         response = client.get(f"/api/users/?skip={skip}&limit={limit}")
         assert response.status_code == 200
         assert len(response.json()) == limit

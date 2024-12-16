@@ -9,10 +9,7 @@ from lib.data.database import get_db
 from lib.data.models import User, Account, Subscription
 from lib.schema.data import SubscriptionCreate
 from lib.schema.auth import LoginRequest, RegisterRequest, ChangePasswordRequest
-
-from env import config
 from lib.util.jwt_util import make_access_token, make_refresh_token
-
 
 router = APIRouter()
 
@@ -31,12 +28,14 @@ def login(login_request: LoginRequest = None, db: Session = Depends(get_db)):
     refresh_token = make_refresh_token(account.user.id)
     access_token = make_access_token(refresh_token)
 
+    subscription = db.query(Subscription).filter(Subscription.user_id == account.user.id).first()
     return {
         "message": "Login successful",
         "data": {
             "user": account.user,
             "access_token": access_token,
             "refresh_token": refresh_token,
+            "subscription": subscription
         }
     }
 
