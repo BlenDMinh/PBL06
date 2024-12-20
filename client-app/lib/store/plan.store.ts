@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { Plan } from '@/lib/schema/data/plan.schema';
-import { fetchPlans } from './plan.action';
+import { create } from "zustand";
+import { Plan } from "@/lib/schema/data/plan.schema";
+import { fetchPlans } from "./plan.action";
 
 interface PlanState {
   plans: Plan[];
@@ -14,7 +14,7 @@ const usePlanStore = create<PlanState>((set) => ({
       const plans = await fetchPlans(access_token);
       set({ plans });
     } catch (error) {
-      console.error('Failed to fetch plans', error);
+      console.error("Failed to fetch plans", error);
     }
   },
 }));

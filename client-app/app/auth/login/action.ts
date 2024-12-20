@@ -30,7 +30,6 @@ export async function getUser(userId: number) {
   try {
     const api = getServerAppAxio();
     const response = await api.get(`/users/${userId}`);
-    console.log(response);
     const user = UserSchema.parse(response.data.data.user);
     const subscription = SubscriptionSchema.parse(response.data.data.subscription);
     return { user, subscription };

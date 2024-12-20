@@ -12,7 +12,6 @@ export async function getHistory(access_token: string) {
         Authorization: `Bearer ${access_token}`,
       },
     });
-    console.log(response.data);
     const data = QueriesSchema.parse(response.data);
     return data;
   } catch (error: any) {

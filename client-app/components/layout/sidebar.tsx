@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import useAuthenticateStore from "@/lib/store/authenticate.store";
 import usePlanStore from '@/lib/store/plan.store';
 import Link from "next/link";
-import { Menu01Icon } from "hugeicons-react";
+import { Menu01Icon, Money01Icon, Home01Icon } from "hugeicons-react";
 import { handleLogout } from "@/app/actions";
 import SidebarItem from "@/components/layout/sidebar_item";
 import Loader from "@/components/layout/loader";
@@ -29,6 +29,24 @@ const Sidebar = () => {
   const [userSubscription, setUserSubscription] = useState<Subscription | null | undefined>(authSubscription);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const menuItems = [
+    {
+      href: "/home",
+      icon: <Home01Icon size={32} />,
+      label: "Home"
+    },
+    {
+      href: "/history",
+      icon: <Menu01Icon size={32} />,
+      label: "History"
+    },
+    {
+      href: "/plan",
+      icon: <Money01Icon size={32} />,
+      label: "Plan"
+    },
+  ];
 
   useEffect(() => {
     ensuredInitialized().then(() => {
@@ -60,11 +78,16 @@ const Sidebar = () => {
         Logo
       </Link>
       <div className="flex flex-col justify-center grow items-start px-8 w-full">
-        {isAuthenticated && (
-          <SidebarItem href="/history" icon={<Menu01Icon size={32} />} active={false}>
-            History
+        {isAuthenticated && menuItems.map((item) => (
+          <SidebarItem
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            active={false}
+          >
+            {item.label}
           </SidebarItem>
-        )}
+        ))}
       </div>
       <div className="w-full mt-auto px-8">
         {isAuthenticated ? (
@@ -100,7 +123,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Mobile Menu Button */}
-      <button 
+      <button
         className="md:hidden fixed top-4 right-4 z-50 btn btn-circle"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       >
@@ -113,21 +136,21 @@ const Sidebar = () => {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex sticky w-64 bg-base-300 flex-col items-center justify-between py-8 h-screen">
+      <div className="hidden md:flex fixed w-64 bg-base-300 flex-col items-center justify-between py-8 h-screen">
         {sidebarContent}
       </div>
 
       {/* User Modal */}
-      <UserModal 
-        user={user} 
-        subscription={plans.find(p => p.id === userSubscription?.plan_id)?.name} 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <UserModal
+        user={user}
+        subscription={plans.find(p => p.id === userSubscription?.plan_id)?.name}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={() => setIsMobileMenuOpen(false)}
         />

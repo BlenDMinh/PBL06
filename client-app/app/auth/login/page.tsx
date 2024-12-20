@@ -52,7 +52,7 @@ export default function LoginPage() {
       authenticationStore.setIsAuthenticated(true);
       authenticationStore.setSubscription(subscription);
       toast.success("Login successful!");
-      router.push("/");
+      router.push("/home");
 
     } catch (error: any) {
       console.log(error);
