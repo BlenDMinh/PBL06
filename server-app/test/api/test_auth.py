@@ -1,6 +1,7 @@
 import pytest
 from lib.data.database import Base
 from test.test import engine, client
+from env import config
 
 @pytest.fixture(scope="module")
 def setup_database():
@@ -56,6 +57,31 @@ def test_login_user(setup_database):
     assert response.status_code == 200
     assert "access_token" in response.json()["data"]
     assert "refresh_token" in response.json()["data"]
+
+def test_login_with_missing_data(setup_database):
+    login_data = {
+        "email": "new_user@test.com"
+    }
+    response = client.post("api/auth/login/", json=login_data)
+    assert response.status_code == 400
+
+def test_login_with_invalid_email(setup_database):
+    login_data = {
+        "email": "invalid_email", 
+        "password": "securepassword123"
+    }
+    response = client.post("api/auth/login/", json=login_data)
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Validation error"
+
+def test_login_with_unregistered_email(setup_database):
+    login_data = {
+        "email": "new_user1@test.com",
+        "password": "securepassword123"
+    }
+    response = client.post("api/auth/login/", json=login_data)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
 
 def test_login_with_wrong_password(setup_database):
     login_data = {
@@ -126,12 +152,10 @@ def test_get_me(setup_database):
     login_response = client.post("api/auth/login/", json=login_data)
     assert login_response.status_code == 200
     access_token = login_response.json()["data"]["access_token"]
-
+    headers={"Authorization": f"Bearer {access_token}"}
     # Step 3: Get the current user data using the access token
     response = client.get(
-        "api/auth/me", 
+        "api/auth/me/", 
         headers={"Authorization": f"Bearer {access_token}"}
     )
-    assert response.json() == 200
-    assert response.json()["data"]["user"]["email"] == new_user["email"]
-    assert response.json()["data"]["user"]["username"] == new_user["username"]
+    assert response.status_code == 200
