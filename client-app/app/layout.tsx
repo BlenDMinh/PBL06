@@ -28,14 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-theme="coffee">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <div className="flex w-full">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <div className="grow">
+          <main className="flex-1 overflow-y-auto md:pl-64">
             {children}
-          </div>
+          </main>
         </div>
         <ToastContainer />
       </body>
