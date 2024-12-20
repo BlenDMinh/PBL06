@@ -13,11 +13,15 @@ export async function handleLogout() {
   redirect("/auth/login");
 }
 
-export async function convertImageToText(imageForm: FormData, access_token: string): Promise<Query | null> {
+export async function convertImageToText(
+  imageForm: FormData,
+  access_token: string,
+  user_id: number
+): Promise<Query | null> {
   try {
     const aiServer = getAIServerAxio();
-
-    const response = await aiServer.post("/img2txt", imageForm, {
+    const url = `/img2txt?user_id=${user_id}`;
+    const response = await aiServer.post(url, imageForm, {
       headers: {
         "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${access_token}`,
@@ -30,7 +34,7 @@ export async function convertImageToText(imageForm: FormData, access_token: stri
     }
     return null;
   } catch (e) {
-    console.error(e);
+    console.log(e);
     return null;
   }
 }

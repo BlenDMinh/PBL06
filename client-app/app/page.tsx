@@ -110,7 +110,7 @@ export default function Home() {
           toast.error("No access token found");
           return;
         }
-        const queryResult = await convertImageToText(formData, access_token);
+        const queryResult = await convertImageToText(formData, access_token, user!.id);
         if (!queryResult) {
           setLinkError("Error processing image 1");
           toast.error("Error processing image 1");
