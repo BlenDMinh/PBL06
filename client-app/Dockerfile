@@ -28,8 +28,4 @@ RUN pnpm build
 # Expose the application port
 EXPOSE 3000
 
-# Start the application
-RUN dos2unix /app/run.sh
-RUN chmod +x /app/run.sh
-# CMD [ "ls", "/app" ]
-ENTRYPOINT [ "/app/run.sh" ]
+CMD [ "pnpm", "start" ]
