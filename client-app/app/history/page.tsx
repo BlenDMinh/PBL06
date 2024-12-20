@@ -18,19 +18,17 @@ export default function HistoryPage() {
 
     useEffect(() => {
         ensuredInitialized().then(() => {
-            if (!isAuthenticated) {
-                router.push('/auth/login');
+
+            const access_token = localStorage.getItem('access_token');
+            if (access_token) {
+                getHistory(access_token)
+                    .then((data) => setHistoryData(data || []))
+                    .finally(() => setLoading(false));
             } else {
-                const access_token = localStorage.getItem('access_token');
-                if (access_token) {
-                    getHistory(access_token)
-                        .then((data) => setHistoryData(data || []))
-                        .finally(() => setLoading(false));
-                } else {
-                    setError('Access token is missing');
-                    setLoading(false);
-                }
+                setError('Access token is missing');
+                setLoading(false);
             }
+
         });
     }, [isAuthenticated]);
 

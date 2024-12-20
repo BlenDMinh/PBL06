@@ -3,8 +3,6 @@
 
 import { getServerAppAxio } from '@/lib/util/api';
 import { QueriesSchema } from '@/lib/schema/data/query.schema';
-import { ApiError } from '@/lib/errors/ApiError';
-import axios from "axios";
 
 export async function getHistory(access_token: string) {
   try {
