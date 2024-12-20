@@ -2,6 +2,7 @@
 
 import { error } from "console";
 import { UserSchema } from "../schema/data/user.schema";
+import { SubscriptionSchema } from "../schema/data/subscription";
 import { getServerAppAxio } from "../util/api";
 
 export async function tokenLogin(access_token: string) {
@@ -22,5 +23,6 @@ export async function tokenLogin(access_token: string) {
     return null;
   }
   const user = UserSchema.parse(response.data.data.user);
-  return user;
+  const subscription = SubscriptionSchema.parse(response.data.data.subscription);
+  return { user, subscription };
 }

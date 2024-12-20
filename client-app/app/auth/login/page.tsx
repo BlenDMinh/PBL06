@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import Loader from "@/components/layout/loader";
 import { useState } from "react";
 import { ApiError } from "@/lib/errors/ApiError";
+import usePlanStore from '@/lib/store/plan.store';
 
 type LoginFormInputs = {
   email: string;
@@ -19,6 +20,7 @@ type LoginFormInputs = {
 };
 
 export default function LoginPage() {
+  const { fetchAllPlans, plans } = usePlanStore();
   const [loading, setLoading] = useState(false);
   const authenticationStore = useAuthenticateStore((state) => state);
   const router = useRouter();
@@ -41,13 +43,17 @@ export default function LoginPage() {
         return;
       }
       const user = response.data.user;
+      const subscription = response.data.subscription;
       const accessToken = response.data.access_token;
       const refreshToken = response.data.refresh_token;
       authenticationStore.saveLoginToken(accessToken, refreshToken);
+      await fetchAllPlans(accessToken);
       authenticationStore.setUser(user);
       authenticationStore.setIsAuthenticated(true);
+      authenticationStore.setSubscription(subscription);
       toast.success("Login successful!");
       router.push("/");
+
     } catch (error: any) {
       console.log(error);
       const errorMessage = error.message || "An unexpected error occurred";
