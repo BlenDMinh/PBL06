@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { Plan } from '@/lib/schema/data/plan.schema';
 import { fetchPlans } from './plan.action';
 

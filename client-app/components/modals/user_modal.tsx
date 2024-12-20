@@ -6,7 +6,7 @@ import Link from "next/link";
 
 interface UserModalProps {
   user: User | null | undefined;
-  subscription: String | null | undefined;
+  subscription: string | null | undefined;
   isOpen: boolean;
   onClose: () => void;
 }
