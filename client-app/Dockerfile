@@ -32,3 +32,4 @@ EXPOSE 3000
 RUN dos2unix /app/run.sh
 RUN chmod +x /app/run.sh
 # CMD [ "ls", "/app" ]
+ENTRYPOINT [ "/app/run.sh" ]
