@@ -7,8 +7,10 @@ import { toast } from "react-toastify";
 import { convertImageToText } from "./actions";
 import Image from "next/image";
 import { ApiError } from "@/lib/errors/ApiError";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const [imageLink, setImageLink] = useState("");
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export default function Home() {
         return;
       }
 
-      const access_token = localStorage.getItem('access_token');
+      const access_token = localStorage.getItem("access_token");
       if (!access_token) {
         toast.error("Authentication required");
         return;
@@ -118,21 +120,27 @@ export default function Home() {
       formData.append("upload_image", fileToSend);
 
       try {
-        const queryResult = await convertImageToText(formData, access_token, user!.id);
+        const queryResult = await convertImageToText(
+          formData,
+          access_token,
+          user!.id
+        );
         if (queryResult) {
           setDisplayText(" " + queryResult.content);
           toast.success("Image processed successfully!");
           setProcessCompleted(true);
+          router.push("/history");
         }
       } catch (error) {
         if (error instanceof ApiError) {
           toast.error(error.message);
         } else {
-          toast.error("An unexpected error occurred while processing the image");
+          toast.error(
+            "An unexpected error occurred while processing the image"
+          );
         }
         console.error("Processing error:", error);
       }
-
     } catch (error) {
       if (error instanceof ApiError) {
         toast.error(error.message);
@@ -179,34 +187,46 @@ export default function Home() {
             id="imageLink"
             value={imageLink}
             onChange={handleImageLinkChange}
-            className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${previewImage || !isAuthenticated ? "bg-gray-400 cursor-not-allowed" : ""
-              }`}
+            className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${
+              previewImage || !isAuthenticated
+                ? "bg-gray-400 cursor-not-allowed"
+                : ""
+            }`}
             disabled={!!previewImage || !isAuthenticated}
           />
-          {linkError && <p className="mt-2 text-sm text-red-600">{linkError}</p>}
+          {linkError && (
+            <p className="mt-2 text-sm text-red-600">{linkError}</p>
+          )}
         </div>
       )}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${previewImage || !isAuthenticated ? "bg-gray-400 cursor-not-allowed" : "cursor-pointer"
-          }`}
+        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${
+          previewImage || !isAuthenticated
+            ? "bg-gray-400 cursor-not-allowed"
+            : "cursor-pointer"
+        }`}
       >
-        <input {...getInputProps()} disabled={!!previewImage || !isAuthenticated} />
+        <input
+          {...getInputProps()}
+          disabled={!!previewImage || !isAuthenticated}
+        />
         <p>
           {!isAuthenticated
             ? "Please login to upload images"
-            : "Drag 'n' drop some files here, or click to select files"
-          }
+            : "Drag 'n' drop some files here, or click to select files"}
         </p>
       </div>
       {previewImage && (
         <div className="mt-4 flex flex-col items-center">
-          <div className="relative w-full max-w-xs h-64"> {/* Added h-64 to set height */}
+          <div className="relative w-full max-w-xs h-64">
+            {" "}
+            {/* Added h-64 to set height */}
             <Image
               src={previewImage}
               alt="Image Preview"
               fill
-              style={{ objectFit: 'contain' }} // Ensure the image scales properly
+              style={{ objectFit: "contain" }} // Ensure the image scales properly
             />
           </div>
           <div className="mt-4 flex space-x-4">
