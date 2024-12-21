@@ -12,3 +12,4 @@ psycopg2-binary
 htmlx
 pytest
 pytest-cov
+fastapi-pagination
