@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, UploadFile
+from fastapi_pagination import Page, paginate
 from sqlalchemy.orm import Session
 
 from lib.data.database import get_db
@@ -11,10 +12,10 @@ from lib.service.cloudinary_service import CloudinaryService, get_cloudinary_ser
 router = APIRouter()
 log = logging.Logger(__name__)
 
-@router.get("/images/", response_model=list[ImageSchema])
-def get_all_images(skip: int = Query(0), limit: int = Query(10), db: Session = Depends(get_db)):
-    images = db.query(Image).offset(skip).limit(limit).all()
-    return images
+@router.get("/images/", response_model=Page[ImageSchema])
+def get_all_images(db: Session = Depends(get_db)):
+    images = db.query(Image).all()
+    return paginate(images)
 
 async def create_image_upload_task(
         image_bytes: bytes, 

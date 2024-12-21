@@ -14,6 +14,7 @@ import api.subscription
 import api.user
 import api.auth
 from lib.data.database import create_db_and_tables
+from fastapi_pagination import add_pagination
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+add_pagination(app)
 log = logging.Logger("AIServer")
 
 

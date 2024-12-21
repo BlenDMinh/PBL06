@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi_pagination import Page, paginate
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -9,14 +10,17 @@ from lib.util.auth import authenticate
 
 router = APIRouter()
 
-@router.get("/queries/", response_model=List[QuerySchema])
-def get_user_queries(skip: int = 0, limit: int = 10, user: User = Depends(authenticate), db: Session = Depends(get_db)):
+@router.get("/queries/", response_model=Page[QuerySchema])
+def get_user_queries(user: User = Depends(authenticate), db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    queries = db.query(Query).filter(Query.user_id == user.id).offset(skip).limit(limit).all()
+    
+    queries = db.query(Query).filter(Query.user_id == user.id).all()
+
     if not queries:
         raise HTTPException(status_code=404, detail="No queries found for this user")
-    return queries
+
+    return paginate(queries)
 
 @router.post("/queries/", response_model=QuerySchema)
 def create_query(query: QueryCreate, response: Response, db: Session = Depends(get_db)):
