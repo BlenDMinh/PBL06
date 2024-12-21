@@ -23,6 +23,8 @@ export async function tokenLogin(access_token: string) {
     return null;
   }
   const user = UserSchema.parse(response.data.data.user);
-  const subscription = SubscriptionSchema.parse(response.data.data.subscription);
+  const subscription = SubscriptionSchema.parse(
+    response.data.data.subscription
+  );
   return { user, subscription };
 }
