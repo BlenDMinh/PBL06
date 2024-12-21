@@ -15,7 +15,7 @@ def get_user_queries(user: User = Depends(authenticate), db: Session = Depends(g
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    queries = db.query(Query).filter(Query.user_id == user.id).all()
+    queries = db.query(Query).filter(Query.user_id == user.id).order_by(Query.created_at.desc()).all()
 
     if not queries:
         raise HTTPException(status_code=404, detail="No queries found for this user")
