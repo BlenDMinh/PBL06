@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Query } from "../../lib/schema/data/query.schema";
-import Image from "next/image";
 interface HistoryItemProps {
   item: Query;
 }
@@ -36,6 +35,9 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
     };
   }, [isImageExpanded]);
 
+  const localDate = new Date(item.created_at);
+  localDate.setHours(localDate.getHours() + 7);
+
   return (
     <div
       className="flex items-center p-4 bg-base-100 shadow-md rounded-lg"
@@ -61,8 +63,9 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
           {item.content}
         </p>
         <p className="text-sm text-base-content mt-2">
-          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+          {formatDistanceToNow(localDate, { addSuffix: true })}
         </p>
+        <p>{item.created_at.toISOString()}</p>
       </div>
       {isImageExpanded && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50">

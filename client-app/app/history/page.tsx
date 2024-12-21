@@ -1,7 +1,7 @@
 // page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useAuthenticateStore from "@/lib/store/authenticate.store";
 import HistoryItem from "@/components/items/history_item";
@@ -11,6 +11,14 @@ import Loader from "@/components/layout/loader";
 import Pagination from "@/components/pagination/Pagination";
 
 export default function HistoryPage() {
+  return (
+    <Suspense fallback={<Loader />}>
+      <HistoryPageContent />
+    </Suspense>
+  );
+}
+
+function HistoryPageContent() {
   const router = useRouter();
   const { isAuthenticated, ensuredInitialized } = useAuthenticateStore();
   const [historyData, setHistoryData] = useState<Query[]>([]);
@@ -30,6 +38,10 @@ export default function HistoryPage() {
             const { histories, total } = data;
             setHistoryData(histories);
             setTotalItems(total);
+          })
+          .catch((error) => {
+            setError(error.message);
+            router.push("/login");
           })
           .finally(() => setLoading(false));
       } else {
