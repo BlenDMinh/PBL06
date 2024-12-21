@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Query } from "../../lib/schema/data/query.schema";
+
 interface HistoryItemProps {
   item: Query;
 }
@@ -36,7 +37,6 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
   }, [isImageExpanded]);
 
   const localDate = new Date(item.created_at);
-  localDate.setHours(localDate.getHours() + 7);
 
   return (
     <div
@@ -62,11 +62,33 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
         >
           {item.content}
         </p>
+
+        {/* Display the result status */}
         <p className="text-sm text-base-content mt-2">
-          {formatDistanceToNow(localDate, { addSuffix: true })}
+          Status:{" "}
+          <span
+            className={
+              item.result === "PENDING"
+                ? "text-yellow-500"
+                : item.result === "SUCCESS"
+                ? "text-green-500"
+                : "text-red-500"
+            }
+          >
+            {item.result}
+          </span>
         </p>
+
+        {/* Display the time since creation */}
+        {item.result !== "PENDING" && (
+          <p className="text-sm text-base-content mt-2">
+            {formatDistanceToNow(localDate, { addSuffix: true })}
+          </p>
+        )}
+
         <p>{item.created_at.toISOString()}</p>
       </div>
+
       {isImageExpanded && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50">
           <div className="relative" ref={imageRef}>
