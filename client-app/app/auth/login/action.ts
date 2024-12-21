@@ -14,6 +14,7 @@ export async function serverSideLogin(email: string, password: string) {
     const data = LoginResponseSchema.parse(response.data);
     return data;
   } catch (error: any) {
+    console.log(error);
     if (axios.isAxiosError(error)) {
       const message =
         error.response?.data?.detail || "An error occurred during login";
@@ -31,11 +32,14 @@ export async function getUser(userId: number) {
     const api = getServerAppAxio();
     const response = await api.get(`/users/${userId}`);
     const user = UserSchema.parse(response.data.data.user);
-    const subscription = SubscriptionSchema.parse(response.data.data.subscription);
+    const subscription = SubscriptionSchema.parse(
+      response.data.data.subscription
+    );
     return { user, subscription };
   } catch (error: any) {
     if (axios.isAxiosError(error)) {
-      const message = error.response?.data?.detail || "An error occurred during login";
+      const message =
+        error.response?.data?.detail || "An error occurred during login";
       console.error("Axios error:", message);
       const statusCode = error.response?.status || 500;
       throw new ApiError(message, statusCode);
