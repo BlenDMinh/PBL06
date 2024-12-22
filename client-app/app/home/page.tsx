@@ -8,6 +8,7 @@ import { convertImageToText } from "./actions";
 import Image from "next/image";
 import { ApiError } from "@/lib/errors/ApiError";
 import { useRouter } from "next/navigation";
+import { Upload, X, Send } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -171,93 +172,110 @@ export default function Home() {
   }, [displayText]);
 
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-      {!isAuthenticated ? (
-        <div className="text-center p-4 bg-red-100 rounded-md text-red-700 mb-8">
-          Please login to use the image classification feature
-        </div>
-      ) : (
-        <div className="mb-8">
-          <label htmlFor="imageLink" className="block text-sm font-medium">
-            Image Link
-          </label>
-          <input
-            type="text"
-            id="imageLink"
-            value={imageLink}
-            onChange={handleImageLinkChange}
-            className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm ${
-              previewImage || !isAuthenticated
-                ? "bg-gray-400 cursor-not-allowed"
-                : ""
-            }`}
-            disabled={!!previewImage || !isAuthenticated}
-          />
-          {linkError && (
-            <p className="mt-2 text-sm text-red-600">{linkError}</p>
-          )}
-        </div>
-      )}
-      <div
-        {...getRootProps()}
-        className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${
-          previewImage || !isAuthenticated
-            ? "bg-gray-400 cursor-not-allowed"
-            : "cursor-pointer"
-        }`}
-      >
-        <input
-          {...getInputProps()}
-          disabled={!!previewImage || !isAuthenticated}
-        />
-        <p>
-          {!isAuthenticated
-            ? "Please login to upload images"
-            : "Drag 'n' drop some files here, or click to select files"}
-        </p>
-      </div>
-      {previewImage && (
-        <div className="mt-4 flex flex-col items-center">
-          <div className="relative w-full max-w-xs h-64">
-            {" "}
-            {/* Added h-64 to set height */}
-            <Image
-              src={previewImage}
-              alt="Image Preview"
-              fill
-              style={{ objectFit: "contain" }} // Ensure the image scales properly
-            />
-          </div>
-          <div className="mt-4 flex space-x-4">
-            <button
-              onClick={handleCancelImage}
-              className="px-4 py-2 bg-red-600 text-white rounded-md"
+    <div className="min-h-screen p-8 bg-base-200">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-center text-base-content">
+          Dashboard
+        </h1>
+        {!isAuthenticated ? (
+          <div className="alert alert-error mb-8">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-current shrink-0 h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              Cancel Image
-            </button>
-            {!processCompleted && (
-              <button
-                onClick={handleSend}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md"
-                disabled={loading}
-              >
-                {loading ? "Sending..." : "Send"}
-              </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Please login to use the image classification feature</span>
+          </div>
+        ) : (
+          <div className="mb-8">
+            <label htmlFor="imageLink" className="label">
+              <span className="label-text">Image Link</span>
+            </label>
+            <input
+              type="text"
+              id="imageLink"
+              value={imageLink}
+              onChange={handleImageLinkChange}
+              className={`input input-bordered w-full ${
+                previewImage || !isAuthenticated ? "input-disabled" : ""
+              }`}
+              disabled={!!previewImage || !isAuthenticated}
+            />
+            {linkError && (
+              <label className="label">
+                <span className="label-text-alt text-error">{linkError}</span>
+              </label>
             )}
           </div>
+        )}
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-8 text-center ${
+            previewImage || !isAuthenticated
+              ? "bg-base-300 cursor-not-allowed"
+              : "bg-base-100 hover:bg-base-200 cursor-pointer transition-colors duration-200"
+          }`}
+        >
+          <input
+            {...getInputProps()}
+            disabled={!!previewImage || !isAuthenticated}
+          />
+          <Upload className="mx-auto h-12 w-12 text-base-content" />
+          <p className="mt-2 text-base-content">
+            {!isAuthenticated
+              ? "Please login to upload images"
+              : "Drag 'n' drop some files here, or click to select files"}
+          </p>
         </div>
-      )}
-      {loading && (
-        <div className="mt-4 flex justify-center">
-          <div className="loader"></div>
-        </div>
-      )}
-      {displayText && (
-        <div className="mt-8 p-4 border border-gray-300 rounded-lg">
-          <p>{typedText}</p>
-        </div>
-      )}
+        {previewImage && (
+          <div className="mt-8 flex flex-col items-center">
+            <div className="relative w-full max-w-xs h-64">
+              <Image
+                src={previewImage}
+                alt="Image Preview"
+                fill
+                style={{ objectFit: "contain" }}
+                className="rounded-lg"
+              />
+            </div>
+            <div className="mt-4 flex space-x-4">
+              <button onClick={handleCancelImage} className="btn btn-error">
+                <X className="mr-2 h-4 w-4" /> Cancel Image
+              </button>
+              {!processCompleted && (
+                <button
+                  onClick={handleSend}
+                  className={`btn btn-primary ${loading ? "loading" : ""}`}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  {loading ? "Sending..." : "Send"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {displayText && (
+          <div className="mt-8 p-4 bg-base-100 rounded-lg shadow-lg">
+            <h2 className="text-xl font-semibold mb-2 text-base-content">
+              Result:
+            </h2>
+            <p className="text-base-content">{typedText}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
