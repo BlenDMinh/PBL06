@@ -98,12 +98,20 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
       </div>
 
       {isImageExpanded && (
-        <div className="fixed inset-0 flex items-center justify-center bg-base-300/75 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-base-300/75 z-50 p-4">
           <div
-            className="relative bg-base-100 p-2 rounded-lg shadow-2xl"
+            className="relative bg-base-100 p-2 rounded-lg shadow-2xl max-w-[90vw] max-h-[90vh] overflow-auto"
             ref={imageRef}
           >
-            <div className="w-[800px] h-[800px] overflow-hidden">
+            <div
+              className="relative"
+              style={{
+                width: "100%",
+                height: "100%",
+                maxWidth: "800px",
+                maxHeight: "800px",
+              }}
+            >
               <img
                 src={
                   item.image?.image_url ||
@@ -114,7 +122,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item }) => {
               />
             </div>
             <button
-              className="btn btn-circle btn-sm absolute -top-2 -right-2 bg-base-100 text-base-content hover:bg-base-200"
+              className="btn btn-circle btn-sm absolute top-2 right-2 bg-base-100 text-base-content hover:bg-base-200"
               onClick={toggleImageExpand}
             >
               <svg
