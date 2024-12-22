@@ -65,6 +65,8 @@ const Sidebar = () => {
 
   const handleLogoutClick = () => {
     handleLogout();
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     setIsAuthenticated(false);
     setAuthUser(null);
     setAuthSubscription(null);
