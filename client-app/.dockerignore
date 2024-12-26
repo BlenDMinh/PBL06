@@ -4,7 +4,12 @@ node_modules
 build
 npm-debug.log
 README.md
-.next
-.git
+.next/
+.git/
 .env
 .env.example
+node_modules
+*.log
+.git
+.env
+dist/
