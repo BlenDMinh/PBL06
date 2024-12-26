@@ -4,7 +4,7 @@ volumes:
 services:
   database:
     container_name: mysql-database
-    image: mariadb:11.2.5-jammy
+    build: database
     restart: always
     env_file:
       - .env.docker.local

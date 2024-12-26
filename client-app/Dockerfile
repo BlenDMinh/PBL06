@@ -1,34 +1,37 @@
-FROM node:20-alpine3.20 AS base
+ARG NODE=node:20-alpine3.20
 
-# Install the necessary dependencies
-# RUN apk update
+# Stage 1: Install dependencies
+FROM ${NODE} AS deps
 RUN apk add --no-cache libc6-compat
-# RUN apk add --no-cache python3 make g++ gcc
-COPY package.json ./pnpm-lock.yaml* /app/
-RUN apk add dos2unix
-
 WORKDIR /app
-# Install dependencies
 
+COPY package.json pnpm-lock.yaml* ./
+
+RUN corepack enable pnpm && \
+    pnpm install --frozen-lockfile
+
+# Stage 2: Build the app
+FROM ${NODE} AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN corepack enable pnpm && pnpm i --frozen-lockfile
-RUN pnpm install ts-node
+RUN yarn build
 
-# Copy the rest of the application files
-# COPY ./client-app/. /app/
-# COPY ../.env.docker.local /app/.env
+# Stage 3: Run the production
+FROM ${NODE} AS runner
+WORKDIR /app
 
-# Apply and seeding database
-RUN npx prisma generate
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Build the application
-RUN pnpm build
+# copy assets and the generated standalone server
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Expose the application port
+USER nextjs
+
 EXPOSE 3000
 
-# Start the application
-RUN dos2unix /app/run.sh
-RUN chmod +x /app/run.sh
-# CMD [ "ls", "/app" ]
+# Serve the app
+CMD ["node", "server.js"]

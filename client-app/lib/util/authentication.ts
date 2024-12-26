@@ -3,7 +3,6 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 export function authenticate(req: NextRequest) {
   const bearer = req.headers.get("Authorization");
-  console.log(bearer);
   if (!bearer) {
     return null;
   }
@@ -13,7 +12,7 @@ export function authenticate(req: NextRequest) {
   }
   const scheme = parts[0];
   const access_token = parts[1];
-  if (/^Bearer$/i.test(scheme)) {
+  if (!/^Bearer$/i.test(scheme)) {
     return null;
   }
   if (!access_token) {

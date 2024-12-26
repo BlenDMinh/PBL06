@@ -1,17 +1,30 @@
 "use server";
 
-import LoginResponseSchema from "../schema/auth/login_response.schema";
+import { error } from "console";
 import { UserSchema } from "../schema/data/user.schema";
-import { api } from "../util/api";
+import { SubscriptionSchema } from "../schema/data/subscription";
+import { getServerAppAxio } from "../util/api";
 
 export async function tokenLogin(access_token: string) {
-  const response = await api.post("/auth/login").catch((error) => {
-    return error.response.data;
-  });
-  const user = LoginResponseSchema.parse(response);
-  console.log(user);
-
-  if (user.data) {
-    return UserSchema.parse(user.data);
+  const api = getServerAppAxio();
+  const response = await api
+    .get("/auth/me", {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    })
+    .catch((error) => {
+      return error.response;
+    });
+  if (response.status != 200) {
+    console.error(
+      `${response.config.method} ${response.status}: ${response.data}`
+    );
+    return null;
   }
+  const user = UserSchema.parse(response.data.data.user);
+  const subscription = SubscriptionSchema.parse(
+    response.data.data.subscription
+  );
+  return { user, subscription };
 }

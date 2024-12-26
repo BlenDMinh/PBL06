@@ -1,20 +1,51 @@
 "use server";
 
 import LoginResponseSchema from "@/lib/schema/auth/login_response.schema";
-import { api } from "@/lib/util/api";
+import { getServerAppAxio } from "@/lib/util/api";
+import axios from "axios";
+import { ApiError } from "@/lib/errors/ApiError";
+import { UserSchema } from "@/lib/schema/data/user.schema";
+import { SubscriptionSchema } from "@/lib/schema/data/subscription";
 
 export async function serverSideLogin(email: string, password: string) {
-  const response = await api
-    .post("/auth/login", { email, password })
-    .catch((error) => {
-      return {
-        message: error.response.data.message,
-        data: null,
-        error: error.response.data.error,
-      };
-    });
+  try {
+    const api = getServerAppAxio();
+    const response = await api.post("/auth/login", { email, password });
+    const data = LoginResponseSchema.parse(response.data);
+    return data;
+  } catch (error: any) {
+    console.log(error);
+    if (axios.isAxiosError(error)) {
+      const message =
+        error.response?.data?.detail || "An error occurred during login";
+      console.log(message);
+      const statusCode = error.response?.status || 500;
+      throw new ApiError(message, statusCode);
+    } else {
+      throw new ApiError("An unexpected error occurred during login");
+    }
+  }
+}
 
-  const data = LoginResponseSchema.parse(response.data);
-
-  return data;
+export async function getUser(userId: number) {
+  try {
+    const api = getServerAppAxio();
+    const response = await api.get(`/users/${userId}`);
+    const user = UserSchema.parse(response.data.data.user);
+    const subscription = SubscriptionSchema.parse(
+      response.data.data.subscription
+    );
+    return { user, subscription };
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      const message =
+        error.response?.data?.detail || "An error occurred during login";
+      console.error("Axios error:", message);
+      const statusCode = error.response?.status || 500;
+      throw new ApiError(message, statusCode);
+    } else {
+      console.error("Unexpected error:", error);
+      throw new ApiError("An unexpected error occurred during login");
+    }
+  }
 }
